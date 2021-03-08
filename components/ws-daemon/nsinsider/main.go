@@ -118,6 +118,13 @@ func main() {
 					return unix.Unmount(c.String("target"), 0)
 				},
 			},
+			{
+				Name:  "mknod-fuse",
+				Usage: "creates /dev/fuse",
+				Action: func(c *cli.Context) error {
+					return unix.Mknod("/dev/fuse", 0666, int(unix.Mkdev(10, 229)))
+				},
+			},
 		},
 	}
 
