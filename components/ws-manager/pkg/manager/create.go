@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/imdario/mergo"
 	"github.com/opentracing/opentracing-go"
 	"golang.org/x/xerrors"
+	"google.golang.org/protobuf/proto"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -336,6 +336,66 @@ func (m *Manager) createDefiniteWorkspacePod(startContext *startWorkspaceContext
 		},
 	}
 
+	// USER_NAMESPACE
+	{
+		// Beware: this allows setuid binaries in the workspace - supervisor needs to set no_new_privs now.
+		// However: the whole user workload now runs in a user namespace, which makes this acceptable.
+		workspaceContainer.SecurityContext.AllowPrivilegeEscalation = &boolTrue
+		// TODO(cw): post Kubernetes 1.19 use GA form for settings those profiles
+		pod.Annotations["container.apparmor.security.beta.kubernetes.io/workspace"] = "unconfined"
+		// We're using a custom seccomp profile for user namespaces to allow clone, mount and chroot.
+		// Those syscalls don't make much sense in a non-userns setting, where we default to runtime/default using the PodSecurityPolicy.
+		pod.Annotations["seccomp.security.alpha.kubernetes.io/pod"] = m.Config.SeccompProfile
+		// Mounting /dev/net/tun should be fine security-wise, because:
+		//   - the TAP driver documentation says so (see https://www.kernel.org/doc/Documentation/networking/tuntap.txt)
+		//   - systemd's nspawn does the same thing (if it's good enough for them, it's good enough for us)
+		var (
+			devType          = corev1.HostPathFile
+			hostPathOrCreate = corev1.HostPathDirectoryOrCreate
+			daemonVolumeName = "daemon-mount"
+			mountPropagation = corev1.MountPropagationHostToContainer
+		)
+		pod.Spec.Volumes = append(pod.Spec.Volumes,
+			corev1.Volume{
+				Name: "dev-net-tun",
+				VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{
+						Path: "/dev/net/tun",
+						Type: &devType,
+					},
+				},
+			},
+			corev1.Volume{
+				Name: daemonVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{
+						Path: filepath.Join(m.Config.WorkspaceHostPath, startContext.Request.Id+"-daemon"),
+						Type: &hostPathOrCreate,
+					},
+				},
+			},
+		)
+		for i, c := range pod.Spec.Containers {
+			if c.Name != "workspace" {
+				continue
+			}
+
+			pod.Spec.Containers[i].VolumeMounts = append(c.VolumeMounts,
+				corev1.VolumeMount{
+					MountPath: "/dev/net/tun",
+					Name:      "dev-net-tun",
+				},
+				corev1.VolumeMount{
+					MountPath:        "/.workspace",
+					Name:             daemonVolumeName,
+					MountPropagation: &mountPropagation,
+				},
+			)
+			pod.Spec.Containers[i].Command = []string{"/.supervisor/workspacekit", "ring0"}
+			break
+		}
+	}
+
 	ffidx := make(map[api.WorkspaceFeatureFlag]struct{})
 	for _, feature := range startContext.Request.Spec.FeatureFlags {
 		if _, seen := ffidx[feature]; seen {
@@ -344,64 +404,6 @@ func (m *Manager) createDefiniteWorkspacePod(startContext *startWorkspaceContext
 		ffidx[feature] = struct{}{}
 
 		switch feature {
-		case api.WorkspaceFeatureFlag_USER_NAMESPACE:
-			// Beware: this allows setuid binaries in the workspace - supervisor needs to set no_new_privs now.
-			// However: the whole user workload now runs in a user namespace, which makes this acceptable.
-			workspaceContainer.SecurityContext.AllowPrivilegeEscalation = &boolTrue
-			pod.Annotations[withUsernamespaceAnnotation] = "true"
-			// TODO(cw): post Kubernetes 1.19 use GA form for settings those profiles
-			pod.Annotations["container.apparmor.security.beta.kubernetes.io/workspace"] = "unconfined"
-			// We're using a custom seccomp profile for user namespaces to allow clone, mount and chroot.
-			// Those syscalls don't make much sense in a non-userns setting, where we default to runtime/default using the PodSecurityPolicy.
-			pod.Annotations["seccomp.security.alpha.kubernetes.io/pod"] = m.Config.SeccompProfile
-			// Mounting /dev/net/tun should be fine security-wise, because:
-			//   - the TAP driver documentation says so (see https://www.kernel.org/doc/Documentation/networking/tuntap.txt)
-			//   - systemd's nspawn does the same thing (if it's good enough for them, it's good enough for us)
-			var (
-				devType          = corev1.HostPathFile
-				hostPathOrCreate = corev1.HostPathDirectoryOrCreate
-				daemonVolumeName = "daemon-mount"
-				mountPropagation = corev1.MountPropagationHostToContainer
-			)
-			pod.Spec.Volumes = append(pod.Spec.Volumes,
-				corev1.Volume{
-					Name: "dev-net-tun",
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: "/dev/net/tun",
-							Type: &devType,
-						},
-					},
-				},
-				corev1.Volume{
-					Name: daemonVolumeName,
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: filepath.Join(m.Config.WorkspaceHostPath, startContext.Request.Id+"-daemon"),
-							Type: &hostPathOrCreate,
-						},
-					},
-				},
-			)
-			for i, c := range pod.Spec.Containers {
-				if c.Name != "workspace" {
-					continue
-				}
-
-				pod.Spec.Containers[i].VolumeMounts = append(c.VolumeMounts,
-					corev1.VolumeMount{
-						MountPath: "/dev/net/tun",
-						Name:      "dev-net-tun",
-					},
-					corev1.VolumeMount{
-						MountPath:        "/.workspace",
-						Name:             daemonVolumeName,
-						MountPropagation: &mountPropagation,
-					},
-				)
-				pod.Spec.Containers[i].Command = []string{"/.supervisor/workspacekit", "ring0"}
-				break
-			}
 		case api.WorkspaceFeatureFlag_FULL_WORKSPACE_BACKUP:
 			removeVolume(&pod, workspaceVolumeName)
 			pod.Labels[fullWorkspaceBackupAnnotation] = "true"

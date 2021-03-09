@@ -25,7 +25,7 @@ service WorkspaceManager {
 
     // markActive records a workspace as being active which prevents it from timing out
     rpc MarkActive(MarkActiveRequest) returns (MarkActiveResponse) {}
-    
+
     // setTimeout changes the default timeout for a running workspace
     rpc SetTimeout(SetTimeoutRequest) returns (SetTimeoutResponse) {}
 
@@ -117,7 +117,7 @@ message SubscribeResponse {
         WorkspaceStatus status = 1;
         WorkspaceLogMessage log = 2;
     }
-    
+
     map<string, string> header = 3;
 }
 
@@ -445,12 +445,6 @@ enum WorkspaceFeatureFlag {
     // FixedResources ensures this workspace is not subject to ws-daemon's dynamic resource limits.
     // In this sence it's akin to "guaranteed" (as compared to burstable) resources for workspaces.
     FIXED_RESOURCES = 5;
-
-    // UserNamespace enables user namespace specific behaviour in the pod. It disables a host of 
-    // security features and - for now - should be considered equivalent to PRIVILEGED.
-    //
-    // TODO(cw): update this comment when userns are more secure.
-    USER_NAMESPACE = 6;
 }
 
 // GitSpec configures the Git available within the workspace

@@ -216,25 +216,18 @@ const (
 	// FixedResources ensures this workspace is not subject to ws-daemon's dynamic resource limits.
 	// In this sence it's akin to "guaranteed" (as compared to burstable) resources for workspaces.
 	WorkspaceFeatureFlag_FIXED_RESOURCES WorkspaceFeatureFlag = 5
-	// UserNamespace enables user namespace specific behaviour in the pod. It disables a host of
-	// security features and - for now - should be considered equivalent to PRIVILEGED.
-	//
-	// TODO(cw): update this comment when userns are more secure.
-	WorkspaceFeatureFlag_USER_NAMESPACE WorkspaceFeatureFlag = 6
 )
 
 var WorkspaceFeatureFlag_name = map[int32]string{
 	0: "NOOP",
 	4: "FULL_WORKSPACE_BACKUP",
 	5: "FIXED_RESOURCES",
-	6: "USER_NAMESPACE",
 }
 
 var WorkspaceFeatureFlag_value = map[string]int32{
 	"NOOP":                  0,
 	"FULL_WORKSPACE_BACKUP": 4,
 	"FIXED_RESOURCES":       5,
-	"USER_NAMESPACE":        6,
 }
 
 func (x WorkspaceFeatureFlag) String() string {

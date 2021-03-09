@@ -529,26 +529,6 @@ proto.wsdaemon.InitWorkspaceRequest.prototype.setContentManifest = function(valu
 };
 
 
-/**
- * optional bool user_namespaced = 6;
- * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
- * You should avoid comparisons like {@code val === true/false} in those cases.
- * @return {boolean}
- */
-proto.wsdaemon.InitWorkspaceRequest.prototype.getUserNamespaced = function() {
-  return /** @type {boolean} */ (jspb.Message.getFieldWithDefault(this, 6, false));
-};
-
-
-/** @param {boolean} value */
-proto.wsdaemon.InitWorkspaceRequest.prototype.setUserNamespaced = function(value) {
-  jspb.Message.setProto3BooleanField(this, 6, value);
-};
-
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
 /**
  * Creates an object representation of this proto suitable for use in Soy templates.

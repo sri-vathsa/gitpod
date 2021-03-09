@@ -215,8 +215,6 @@ func (s *WorkspaceService) InitWorkspace(ctx context.Context, req *api.InitWorks
 			Args:    s.config.Initializer.Args,
 			UID:     wsinit.GitpodUID,
 			GID:     wsinit.GitpodGID,
-		}
-		if req.UserNamespaced {
 			opts.IdMappings = []archive.IDMapping{
 				{ContainerID: 0, HostID: wsinit.GitpodUID, Size: 1},
 				{ContainerID: 1, HostID: 100000, Size: 65534},
@@ -264,7 +262,6 @@ func (s *WorkspaceService) creator(req *api.InitWorkspaceRequest, upperdir strin
 			FullWorkspaceBackup: req.FullWorkspaceBackup,
 			ContentManifest:     req.ContentManifest,
 
-			UserNamespaced:   req.UserNamespaced,
 			ServiceLocDaemon: filepath.Join(s.config.WorkingArea, req.Id+"-daemon"),
 			ServiceLocNode:   filepath.Join(s.config.WorkingAreaNode, req.Id+"-daemon"),
 		}, nil
@@ -475,7 +472,7 @@ func (s *WorkspaceService) uploadWorkspaceContent(ctx context.Context, sess *ses
 		}()
 
 		var opts []archive.TarOption
-		if sess.UserNamespaced && !sess.FullWorkspaceBackup {
+		if  !sess.FullWorkspaceBackup {
 			mappings := []archive.IDMapping{
 				{ContainerID: 0, HostID: wsinit.GitpodUID, Size: 1},
 				{ContainerID: 1, HostID: 100000, Size: 65534},

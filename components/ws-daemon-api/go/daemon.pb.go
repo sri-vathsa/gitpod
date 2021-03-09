@@ -81,9 +81,7 @@ type InitWorkspaceRequest struct {
 	// content_manifest describes the layers that comprise the workspace image content.
 	// This manifest is not used to actually download content, but to produce a new manifest for snapshots and backups.
 	// This field is ignored if full_workspace_backup is false.
-	ContentManifest []byte `protobuf:"bytes,5,opt,name=content_manifest,json=contentManifest,proto3" json:"contentManifest,omitempty"`
-	// user_namespaced makes ws-daemon create a mark mount of the container's rootfs in the container's mark mount location.
-	UserNamespaced       bool     `protobuf:"varint,6,opt,name=user_namespaced,json=userNamespaced,proto3" json:"userNamespaced,omitempty"`
+	ContentManifest      []byte   `protobuf:"bytes,5,opt,name=content_manifest,json=contentManifest,proto3" json:"contentManifest,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -147,13 +145,6 @@ func (m *InitWorkspaceRequest) GetContentManifest() []byte {
 		return m.ContentManifest
 	}
 	return nil
-}
-
-func (m *InitWorkspaceRequest) GetUserNamespaced() bool {
-	if m != nil {
-		return m.UserNamespaced
-	}
-	return false
 }
 
 // WorkspaceMetadata is data associated with a workspace that's required for other parts of the system to function
