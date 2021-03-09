@@ -40,7 +40,8 @@
     "eject": "react-scripts eject",
     "build:tailwind": "tailwindcss build src/index.css -o src/tailwind.output.css",
     "prestart": "npm run build:tailwind",
-    "prebuild": "npm run build:tailwind"
+    "prebuild": "npm run build:tailwind",
+    "telepresence": "TELEPRESENCE_USE_DEPLOYMENT=1 leeway run .:telepresence"
   },
   "files": [
     "conf",
