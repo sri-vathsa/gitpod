@@ -8,7 +8,7 @@ fi
 
 export PROTO_INCLUDE="-I$THIRD_PARTY_INCLUDES/third_party -I /usr/lib/protoc/include"
 
-go get github.com/golang/protobuf/protoc-gen-go
+go get github.com/golang/protobuf/protoc-gen-go@v1.3.5
 GO111MODULE=off go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 protoc -I. $PROTO_INCLUDE --go_out=plugins=grpc:go *.proto
 protoc -I. $PROTO_INCLUDE --grpc-gateway_out=logtostderr=true,paths=source_relative:go *.proto
