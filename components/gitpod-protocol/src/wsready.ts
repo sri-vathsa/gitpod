@@ -1,4 +1,10 @@
-// generated using github.com/32leaves/bel on 2021-03-10 16:03:41.509150944 +0000 UTC m=+0.008952353
+/**
+ * Copyright (c) 2021 Gitpod GmbH. All rights reserved.
+ * Licensed under the GNU Affero General Public License (AGPL).
+ * See License-AGPL.txt in the project root for license information.
+ */
+
+// generated using github.com/32leaves/bel on 2021-03-10 18:05:50.855921044 +0000 UTC m=+0.003421970
 // DO NOT MODIFY
 
 export enum WorkspaceInitSource {
