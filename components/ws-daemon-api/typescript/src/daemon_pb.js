@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 Gitpod GmbH. All rights reserved.
+ * Copyright (c) 2021 Gitpod GmbH. All rights reserved.
  * Licensed under the GNU Affero General Public License (AGPL).
  * See License-AGPL.txt in the project root for license information.
  */
@@ -252,8 +252,7 @@ proto.wsdaemon.InitWorkspaceRequest.toObject = function(includeInstance, msg) {
     metadata: (f = msg.getMetadata()) && proto.wsdaemon.WorkspaceMetadata.toObject(includeInstance, f),
     initializer: (f = msg.getInitializer()) && content$service$api_initializer_pb.WorkspaceInitializer.toObject(includeInstance, f),
     fullWorkspaceBackup: jspb.Message.getFieldWithDefault(msg, 4, false),
-    contentManifest: msg.getContentManifest_asB64(),
-    userNamespaced: jspb.Message.getFieldWithDefault(msg, 6, false)
+    contentManifest: msg.getContentManifest_asB64()
   };
 
   if (includeInstance) {
@@ -311,10 +310,6 @@ proto.wsdaemon.InitWorkspaceRequest.deserializeBinaryFromReader = function(msg, 
     case 5:
       var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setContentManifest(value);
-      break;
-    case 6:
-      var value = /** @type {boolean} */ (reader.readBool());
-      msg.setUserNamespaced(value);
       break;
     default:
       reader.skipField();
@@ -379,13 +374,6 @@ proto.wsdaemon.InitWorkspaceRequest.serializeBinaryToWriter = function(message, 
   if (f.length > 0) {
     writer.writeBytes(
       5,
-      f
-    );
-  }
-  f = message.getUserNamespaced();
-  if (f) {
-    writer.writeBool(
-      6,
       f
     );
   }
@@ -527,6 +515,9 @@ proto.wsdaemon.InitWorkspaceRequest.prototype.getContentManifest_asU8 = function
 proto.wsdaemon.InitWorkspaceRequest.prototype.setContentManifest = function(value) {
   jspb.Message.setProto3BytesField(this, 5, value);
 };
+
+
+
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {

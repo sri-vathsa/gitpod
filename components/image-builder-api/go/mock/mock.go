@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Gitpod GmbH. All rights reserved.
+// Copyright (c) 2021 Gitpod GmbH. All rights reserved.
 // Licensed under the GNU Affero General Public License (AGPL).
 // See License-AGPL.txt in the project root for license information.
 
@@ -10,37 +10,38 @@ package mock
 
 import (
 	context "context"
+	reflect "reflect"
+
 	api "github.com/gitpod-io/gitpod/image-builder/api"
 	gomock "github.com/golang/mock/gomock"
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"
-	reflect "reflect"
 )
 
-// MockImageBuilderClient is a mock of ImageBuilderClient interface
+// MockImageBuilderClient is a mock of ImageBuilderClient interface.
 type MockImageBuilderClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockImageBuilderClientMockRecorder
 }
 
-// MockImageBuilderClientMockRecorder is the mock recorder for MockImageBuilderClient
+// MockImageBuilderClientMockRecorder is the mock recorder for MockImageBuilderClient.
 type MockImageBuilderClientMockRecorder struct {
 	mock *MockImageBuilderClient
 }
 
-// NewMockImageBuilderClient creates a new mock instance
+// NewMockImageBuilderClient creates a new mock instance.
 func NewMockImageBuilderClient(ctrl *gomock.Controller) *MockImageBuilderClient {
 	mock := &MockImageBuilderClient{ctrl: ctrl}
 	mock.recorder = &MockImageBuilderClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockImageBuilderClient) EXPECT() *MockImageBuilderClientMockRecorder {
 	return m.recorder
 }
 
-// Build mocks base method
+// Build mocks base method.
 func (m *MockImageBuilderClient) Build(arg0 context.Context, arg1 *api.BuildRequest, arg2 ...grpc.CallOption) (api.ImageBuilder_BuildClient, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -53,14 +54,14 @@ func (m *MockImageBuilderClient) Build(arg0 context.Context, arg1 *api.BuildRequ
 	return ret0, ret1
 }
 
-// Build indicates an expected call of Build
+// Build indicates an expected call of Build.
 func (mr *MockImageBuilderClientMockRecorder) Build(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Build", reflect.TypeOf((*MockImageBuilderClient)(nil).Build), varargs...)
 }
 
-// ListBuilds mocks base method
+// ListBuilds mocks base method.
 func (m *MockImageBuilderClient) ListBuilds(arg0 context.Context, arg1 *api.ListBuildsRequest, arg2 ...grpc.CallOption) (*api.ListBuildsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -73,14 +74,14 @@ func (m *MockImageBuilderClient) ListBuilds(arg0 context.Context, arg1 *api.List
 	return ret0, ret1
 }
 
-// ListBuilds indicates an expected call of ListBuilds
+// ListBuilds indicates an expected call of ListBuilds.
 func (mr *MockImageBuilderClientMockRecorder) ListBuilds(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBuilds", reflect.TypeOf((*MockImageBuilderClient)(nil).ListBuilds), varargs...)
 }
 
-// Logs mocks base method
+// Logs mocks base method.
 func (m *MockImageBuilderClient) Logs(arg0 context.Context, arg1 *api.LogsRequest, arg2 ...grpc.CallOption) (api.ImageBuilder_LogsClient, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -93,14 +94,14 @@ func (m *MockImageBuilderClient) Logs(arg0 context.Context, arg1 *api.LogsReques
 	return ret0, ret1
 }
 
-// Logs indicates an expected call of Logs
+// Logs indicates an expected call of Logs.
 func (mr *MockImageBuilderClientMockRecorder) Logs(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logs", reflect.TypeOf((*MockImageBuilderClient)(nil).Logs), varargs...)
 }
 
-// ResolveBaseImage mocks base method
+// ResolveBaseImage mocks base method.
 func (m *MockImageBuilderClient) ResolveBaseImage(arg0 context.Context, arg1 *api.ResolveBaseImageRequest, arg2 ...grpc.CallOption) (*api.ResolveBaseImageResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -113,14 +114,14 @@ func (m *MockImageBuilderClient) ResolveBaseImage(arg0 context.Context, arg1 *ap
 	return ret0, ret1
 }
 
-// ResolveBaseImage indicates an expected call of ResolveBaseImage
+// ResolveBaseImage indicates an expected call of ResolveBaseImage.
 func (mr *MockImageBuilderClientMockRecorder) ResolveBaseImage(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveBaseImage", reflect.TypeOf((*MockImageBuilderClient)(nil).ResolveBaseImage), varargs...)
 }
 
-// ResolveWorkspaceImage mocks base method
+// ResolveWorkspaceImage mocks base method.
 func (m *MockImageBuilderClient) ResolveWorkspaceImage(arg0 context.Context, arg1 *api.ResolveWorkspaceImageRequest, arg2 ...grpc.CallOption) (*api.ResolveWorkspaceImageResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -133,37 +134,37 @@ func (m *MockImageBuilderClient) ResolveWorkspaceImage(arg0 context.Context, arg
 	return ret0, ret1
 }
 
-// ResolveWorkspaceImage indicates an expected call of ResolveWorkspaceImage
+// ResolveWorkspaceImage indicates an expected call of ResolveWorkspaceImage.
 func (mr *MockImageBuilderClientMockRecorder) ResolveWorkspaceImage(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveWorkspaceImage", reflect.TypeOf((*MockImageBuilderClient)(nil).ResolveWorkspaceImage), varargs...)
 }
 
-// MockImageBuilder_BuildClient is a mock of ImageBuilder_BuildClient interface
+// MockImageBuilder_BuildClient is a mock of ImageBuilder_BuildClient interface.
 type MockImageBuilder_BuildClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockImageBuilder_BuildClientMockRecorder
 }
 
-// MockImageBuilder_BuildClientMockRecorder is the mock recorder for MockImageBuilder_BuildClient
+// MockImageBuilder_BuildClientMockRecorder is the mock recorder for MockImageBuilder_BuildClient.
 type MockImageBuilder_BuildClientMockRecorder struct {
 	mock *MockImageBuilder_BuildClient
 }
 
-// NewMockImageBuilder_BuildClient creates a new mock instance
+// NewMockImageBuilder_BuildClient creates a new mock instance.
 func NewMockImageBuilder_BuildClient(ctrl *gomock.Controller) *MockImageBuilder_BuildClient {
 	mock := &MockImageBuilder_BuildClient{ctrl: ctrl}
 	mock.recorder = &MockImageBuilder_BuildClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockImageBuilder_BuildClient) EXPECT() *MockImageBuilder_BuildClientMockRecorder {
 	return m.recorder
 }
 
-// CloseSend mocks base method
+// CloseSend mocks base method.
 func (m *MockImageBuilder_BuildClient) CloseSend() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloseSend")
@@ -171,13 +172,13 @@ func (m *MockImageBuilder_BuildClient) CloseSend() error {
 	return ret0
 }
 
-// CloseSend indicates an expected call of CloseSend
+// CloseSend indicates an expected call of CloseSend.
 func (mr *MockImageBuilder_BuildClientMockRecorder) CloseSend() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSend", reflect.TypeOf((*MockImageBuilder_BuildClient)(nil).CloseSend))
 }
 
-// Context mocks base method
+// Context mocks base method.
 func (m *MockImageBuilder_BuildClient) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
@@ -185,13 +186,13 @@ func (m *MockImageBuilder_BuildClient) Context() context.Context {
 	return ret0
 }
 
-// Context indicates an expected call of Context
+// Context indicates an expected call of Context.
 func (mr *MockImageBuilder_BuildClientMockRecorder) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockImageBuilder_BuildClient)(nil).Context))
 }
 
-// Header mocks base method
+// Header mocks base method.
 func (m *MockImageBuilder_BuildClient) Header() (metadata.MD, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Header")
@@ -200,13 +201,13 @@ func (m *MockImageBuilder_BuildClient) Header() (metadata.MD, error) {
 	return ret0, ret1
 }
 
-// Header indicates an expected call of Header
+// Header indicates an expected call of Header.
 func (mr *MockImageBuilder_BuildClientMockRecorder) Header() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockImageBuilder_BuildClient)(nil).Header))
 }
 
-// Recv mocks base method
+// Recv mocks base method.
 func (m *MockImageBuilder_BuildClient) Recv() (*api.BuildResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
@@ -215,13 +216,13 @@ func (m *MockImageBuilder_BuildClient) Recv() (*api.BuildResponse, error) {
 	return ret0, ret1
 }
 
-// Recv indicates an expected call of Recv
+// Recv indicates an expected call of Recv.
 func (mr *MockImageBuilder_BuildClientMockRecorder) Recv() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockImageBuilder_BuildClient)(nil).Recv))
 }
 
-// RecvMsg mocks base method
+// RecvMsg mocks base method.
 func (m *MockImageBuilder_BuildClient) RecvMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RecvMsg", arg0)
@@ -229,13 +230,13 @@ func (m *MockImageBuilder_BuildClient) RecvMsg(arg0 interface{}) error {
 	return ret0
 }
 
-// RecvMsg indicates an expected call of RecvMsg
+// RecvMsg indicates an expected call of RecvMsg.
 func (mr *MockImageBuilder_BuildClientMockRecorder) RecvMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockImageBuilder_BuildClient)(nil).RecvMsg), arg0)
 }
 
-// SendMsg mocks base method
+// SendMsg mocks base method.
 func (m *MockImageBuilder_BuildClient) SendMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMsg", arg0)
@@ -243,13 +244,13 @@ func (m *MockImageBuilder_BuildClient) SendMsg(arg0 interface{}) error {
 	return ret0
 }
 
-// SendMsg indicates an expected call of SendMsg
+// SendMsg indicates an expected call of SendMsg.
 func (mr *MockImageBuilder_BuildClientMockRecorder) SendMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockImageBuilder_BuildClient)(nil).SendMsg), arg0)
 }
 
-// Trailer mocks base method
+// Trailer mocks base method.
 func (m *MockImageBuilder_BuildClient) Trailer() metadata.MD {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Trailer")
@@ -257,36 +258,36 @@ func (m *MockImageBuilder_BuildClient) Trailer() metadata.MD {
 	return ret0
 }
 
-// Trailer indicates an expected call of Trailer
+// Trailer indicates an expected call of Trailer.
 func (mr *MockImageBuilder_BuildClientMockRecorder) Trailer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trailer", reflect.TypeOf((*MockImageBuilder_BuildClient)(nil).Trailer))
 }
 
-// MockImageBuilder_LogsClient is a mock of ImageBuilder_LogsClient interface
+// MockImageBuilder_LogsClient is a mock of ImageBuilder_LogsClient interface.
 type MockImageBuilder_LogsClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockImageBuilder_LogsClientMockRecorder
 }
 
-// MockImageBuilder_LogsClientMockRecorder is the mock recorder for MockImageBuilder_LogsClient
+// MockImageBuilder_LogsClientMockRecorder is the mock recorder for MockImageBuilder_LogsClient.
 type MockImageBuilder_LogsClientMockRecorder struct {
 	mock *MockImageBuilder_LogsClient
 }
 
-// NewMockImageBuilder_LogsClient creates a new mock instance
+// NewMockImageBuilder_LogsClient creates a new mock instance.
 func NewMockImageBuilder_LogsClient(ctrl *gomock.Controller) *MockImageBuilder_LogsClient {
 	mock := &MockImageBuilder_LogsClient{ctrl: ctrl}
 	mock.recorder = &MockImageBuilder_LogsClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockImageBuilder_LogsClient) EXPECT() *MockImageBuilder_LogsClientMockRecorder {
 	return m.recorder
 }
 
-// CloseSend mocks base method
+// CloseSend mocks base method.
 func (m *MockImageBuilder_LogsClient) CloseSend() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloseSend")
@@ -294,13 +295,13 @@ func (m *MockImageBuilder_LogsClient) CloseSend() error {
 	return ret0
 }
 
-// CloseSend indicates an expected call of CloseSend
+// CloseSend indicates an expected call of CloseSend.
 func (mr *MockImageBuilder_LogsClientMockRecorder) CloseSend() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSend", reflect.TypeOf((*MockImageBuilder_LogsClient)(nil).CloseSend))
 }
 
-// Context mocks base method
+// Context mocks base method.
 func (m *MockImageBuilder_LogsClient) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
@@ -308,13 +309,13 @@ func (m *MockImageBuilder_LogsClient) Context() context.Context {
 	return ret0
 }
 
-// Context indicates an expected call of Context
+// Context indicates an expected call of Context.
 func (mr *MockImageBuilder_LogsClientMockRecorder) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockImageBuilder_LogsClient)(nil).Context))
 }
 
-// Header mocks base method
+// Header mocks base method.
 func (m *MockImageBuilder_LogsClient) Header() (metadata.MD, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Header")
@@ -323,13 +324,13 @@ func (m *MockImageBuilder_LogsClient) Header() (metadata.MD, error) {
 	return ret0, ret1
 }
 
-// Header indicates an expected call of Header
+// Header indicates an expected call of Header.
 func (mr *MockImageBuilder_LogsClientMockRecorder) Header() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockImageBuilder_LogsClient)(nil).Header))
 }
 
-// Recv mocks base method
+// Recv mocks base method.
 func (m *MockImageBuilder_LogsClient) Recv() (*api.LogsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
@@ -338,13 +339,13 @@ func (m *MockImageBuilder_LogsClient) Recv() (*api.LogsResponse, error) {
 	return ret0, ret1
 }
 
-// Recv indicates an expected call of Recv
+// Recv indicates an expected call of Recv.
 func (mr *MockImageBuilder_LogsClientMockRecorder) Recv() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockImageBuilder_LogsClient)(nil).Recv))
 }
 
-// RecvMsg mocks base method
+// RecvMsg mocks base method.
 func (m *MockImageBuilder_LogsClient) RecvMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RecvMsg", arg0)
@@ -352,13 +353,13 @@ func (m *MockImageBuilder_LogsClient) RecvMsg(arg0 interface{}) error {
 	return ret0
 }
 
-// RecvMsg indicates an expected call of RecvMsg
+// RecvMsg indicates an expected call of RecvMsg.
 func (mr *MockImageBuilder_LogsClientMockRecorder) RecvMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockImageBuilder_LogsClient)(nil).RecvMsg), arg0)
 }
 
-// SendMsg mocks base method
+// SendMsg mocks base method.
 func (m *MockImageBuilder_LogsClient) SendMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMsg", arg0)
@@ -366,13 +367,13 @@ func (m *MockImageBuilder_LogsClient) SendMsg(arg0 interface{}) error {
 	return ret0
 }
 
-// SendMsg indicates an expected call of SendMsg
+// SendMsg indicates an expected call of SendMsg.
 func (mr *MockImageBuilder_LogsClientMockRecorder) SendMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockImageBuilder_LogsClient)(nil).SendMsg), arg0)
 }
 
-// Trailer mocks base method
+// Trailer mocks base method.
 func (m *MockImageBuilder_LogsClient) Trailer() metadata.MD {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Trailer")
@@ -380,7 +381,7 @@ func (m *MockImageBuilder_LogsClient) Trailer() metadata.MD {
 	return ret0
 }
 
-// Trailer indicates an expected call of Trailer
+// Trailer indicates an expected call of Trailer.
 func (mr *MockImageBuilder_LogsClientMockRecorder) Trailer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trailer", reflect.TypeOf((*MockImageBuilder_LogsClient)(nil).Trailer))
