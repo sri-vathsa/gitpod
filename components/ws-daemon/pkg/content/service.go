@@ -213,19 +213,17 @@ func (s *WorkspaceService) InitWorkspace(ctx context.Context, req *api.InitWorks
 		opts := RunInitializerOpts{
 			Command: s.config.Initializer.Command,
 			Args:    s.config.Initializer.Args,
-			UID:     wsinit.GitpodUID,
-			GID:     wsinit.GitpodGID,
-			opts.IdMappings = []archive.IDMapping{
+			IdMappings: []archive.IDMapping{
 				{ContainerID: 0, HostID: wsinit.GitpodUID, Size: 1},
 				{ContainerID: 1, HostID: 100000, Size: 65534},
-			}
+			},
 			// This is a bit of a hack as it makes hard assumptions about the nature of the UID mapping.
 			// Also, we cannot do this in wsinit because we're dropping all the privileges that would be
 			// required for this operation.
 			//
 			// With FWB this bit becomes unneccesary.
-			opts.UID = wsinit.GitpodUID + 100000 - 1
-			opts.GID = wsinit.GitpodGID + 100000 - 1
+			UID: (wsinit.GitpodUID + 100000 - 1),
+			GID: (wsinit.GitpodGID + 100000 - 1),
 		}
 		err = RunInitializer(ctx, workspace.Location, req.Initializer, remoteContent, opts)
 		if err != nil {
@@ -472,7 +470,7 @@ func (s *WorkspaceService) uploadWorkspaceContent(ctx context.Context, sess *ses
 		}()
 
 		var opts []archive.TarOption
-		if  !sess.FullWorkspaceBackup {
+		if !sess.FullWorkspaceBackup {
 			mappings := []archive.IDMapping{
 				{ContainerID: 0, HostID: wsinit.GitpodUID, Size: 1},
 				{ContainerID: 1, HostID: 100000, Size: 65534},
