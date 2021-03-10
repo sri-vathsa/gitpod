@@ -18,7 +18,6 @@ require (
 	google.golang.org/grpc v1.34.0
 	k8s.io/api v0.20.4
 	k8s.io/apimachinery v0.20.4
-	k8s.io/client-go v0.0.0
 )
 
 replace k8s.io/api => k8s.io/api v0.20.4
