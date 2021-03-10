@@ -1,8 +1,14 @@
-#!/bin/sh
+#!/bin/bash
 
-go get github.com/golang/protobuf/protoc-gen-go@v1.3.5
+set -e
+
+go get github.com/golang/protobuf/protoc-gen-go@v1.4.3
+go get google.golang.org/protobuf/reflect/protoreflect@v1.25.0
+go get google.golang.org/protobuf/runtime/protoimpl@v1.25.0
+
 protoc -I. -I.. --go_out=plugins=grpc:. core.proto
-mv github.com/gitpod-io/gitpod/ws-manager/api/* go && rm -rf github.com
+mv github.com/gitpod-io/gitpod/ws-manager/api/* go
+rm -rf github.com
 
 go get github.com/golang/mock/mockgen@latest
 cd go

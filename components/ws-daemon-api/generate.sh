@@ -1,6 +1,6 @@
 #!/bin/sh
 
-go get github.com/golang/protobuf/protoc-gen-go@v1.3.5
+go get github.com/golang/protobuf/protoc-gen-go@v1.4.3
 protoc -I. -I.. --go_out=plugins=grpc:. *.proto
 mv github.com/gitpod-io/gitpod/ws-daemon/api/* go && rm -rf github.com
 
