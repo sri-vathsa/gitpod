@@ -4,7 +4,7 @@
  * See License-AGPL.txt in the project root for license information.
  */
 
-import { GitpodClient, GitpodServer, GitpodServerPath, GitpodService, GitpodServiceImpl } from '@gitpod/gitpod-protocol';
+import { GitpodClient, GitpodServer, GitpodServerPath, GitpodServiceImpl } from '@gitpod/gitpod-protocol';
 import { WebSocketConnectionProvider } from '@gitpod/gitpod-protocol/lib/messaging/browser/connection';
 import { createWindowMessageConnection } from '@gitpod/gitpod-protocol/lib/messaging/browser/window-connection';
 import { JsonRpcProxy, JsonRpcProxyFactory } from '@gitpod/gitpod-protocol/lib/messaging/proxy-factory';
@@ -43,13 +43,17 @@ function createGitpodService<C extends GitpodClient, S extends GitpodServer>() {
     return service;
 }
 
-
-let gitpodService: GitpodService;
-
-const reconnect = () => {
-    gitpodService = createGitpodService();
+declare global {
+    interface Window { gitpodService?: ReturnType<typeof createGitpodService>; }
 }
 
-reconnect();
+// reuse existing service object if present
+let gitpodService = window.gitpodService || (window.gitpodService = createGitpodService());
+
+// allow to reconnect
+const reconnect = () => {
+    window.gitpodService?.server?.dispose();
+    gitpodService = window.gitpodService = createGitpodService();
+}
 
 export { gitpodService, reconnect };
