@@ -15,10 +15,9 @@ const FeaturePreview = React.lazy(() => import('./settings/FeaturePreview'));
 const GitIntegration = React.lazy(() => import('./settings/GitIntegration'));
 
 function App() {
-    const { user, setUser } = useContext(UserContext);
+    const { user, userLoadError, setUser, setUserLoadError } = useContext(UserContext);
 
     const [loading, setLoading] = useState<boolean>(true);
-    const [userLoadError, setUserLoadError] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         (async () => {
