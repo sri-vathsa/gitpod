@@ -445,6 +445,9 @@ enum WorkspaceFeatureFlag {
     // FixedResources ensures this workspace is not subject to ws-daemon's dynamic resource limits.
     // In this sence it's akin to "guaranteed" (as compared to burstable) resources for workspaces.
     FIXED_RESOURCES = 5;
+
+    // Was used for UserNamespace
+    reserved 6;
 }
 
 // GitSpec configures the Git available within the workspace

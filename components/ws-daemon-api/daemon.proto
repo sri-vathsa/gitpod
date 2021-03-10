@@ -41,6 +41,10 @@ message InitWorkspaceRequest {
     // This manifest is not used to actually download content, but to produce a new manifest for snapshots and backups.
     // This field is ignored if full_workspace_backup is false.
     bytes content_manifest = 5;
+
+    // removed fields:
+    //   user_namespaced = 6;
+    reserved 6;
 }
 
 // WorkspaceMetadata is data associated with a workspace that's required for other parts of the system to function
