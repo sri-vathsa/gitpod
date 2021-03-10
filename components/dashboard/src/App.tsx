@@ -45,7 +45,7 @@ function App() {
                     <Switch>
                         {user && (
                             <React.Fragment>
-                                <Route path="/" exact render={
+                                <Route path={["/", "/workspaces"]} exact render={
                                     () => <Workspaces gitpodService={gitpodService} />} />
                                 <Route path="/profile" exact component={Profile} />
                                 <Route path="/notifications" exact component={Notifications} />
@@ -56,9 +56,9 @@ function App() {
                                 <Route path="/default-ide" exact component={DefaultIDE} />
                             </React.Fragment>
                         )}
-                        {!user && (
+                        {(!loading && !user) && (
                             <React.Fragment>
-                                <Route path="/" exact render={() => <Login />} />
+                                <Route path="*" exact render={() => <Login />} />
                             </React.Fragment>
                         )}
                     </Switch>
