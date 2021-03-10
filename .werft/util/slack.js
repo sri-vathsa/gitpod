@@ -1,6 +1,6 @@
 const https = require('https');
 
-function sendToSlack(context, onErr) {
+function reportBuildFailureInSlack(context, onErr) {
     const repo = context.Repository.host + "/" + context.Repository.owner + "/" + context.Repository.repo;
     const data = JSON.stringify({
         "blocks": [
@@ -47,5 +47,5 @@ function sendToSlack(context, onErr) {
 }
 
 module.exports = {
-    sendToSlack,
+    reportBuildFailureInSlack: reportBuildFailureInSlack,
 }

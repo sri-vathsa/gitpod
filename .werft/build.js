@@ -4,7 +4,7 @@ const { werft, exec, gitTag } = require('./util/shell.js');
 const { sleep } = require('./util/util.js');
 const { wipeAndRecreateNamespace, setKubectlContextNamespace, deleteNonNamespaceObjects } = require('./util/kubectl.js');
 const { issueAndInstallCertficate } = require('./util/certs.js');
-const { sendToSlack } = require('./util/slack.js');
+const { reportBuildFailureInSlack } = require('./util/slack.js');
 const semver = require('semver');
 
 const GCLOUD_SERVICE_ACCOUNT_PATH = "/mnt/secrets/gcp-sa/service-account.json";
@@ -15,7 +15,7 @@ const version = parseVersion(context);
 build(context, version)
     .catch((err) => {
         if (context.Repository.ref === "refs/heads/main") {
-            sendToSlack(context, () => process.exit(1))
+            reportBuildFailureInSlack(context, () => process.exit(1))
         } else {
             process.exit(1);
         }
@@ -124,7 +124,7 @@ async function build(context, version) {
             const prereleaseFlag = semver.prerelease(version) !== null ? "-prerelease" : "";
             const tag = `v${version}`;
             const releaseBranch = exec("git rev-parse --abbrev-ref HEAD", {silent: true}).stdout.trim();
-            const description = `Gitpod Self-Hosted Docs: https://www.gitpod.io/docs/self-hosted/latest/self-hosted/`;
+            const description = `Gitpod Self-Hosted ${version}<br/><br/>Docs: https://www.gitpod.io/docs/self-hosted/latest/self-hosted/`;
             exec(`github-release ${prereleaseFlag} gitpod-io/gitpod ${tag} ${releaseBranch} ${description} "${releaseFilesTmpDir}/*"`)
 
             werft.done('publish');
