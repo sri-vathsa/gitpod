@@ -16,6 +16,9 @@ export const gitpodHostUrl = new GitpodHostUrl(window.location.toString());
 
 function createGitpodService<C extends GitpodClient, S extends GitpodServer>() {
     let proxy: JsonRpcProxy<S>;
+    let reconnect = () => {
+        console.log("WebSocket reconnect not possible.");
+    }
     if (window.top !== window.self) {
         const connection = createWindowMessageConnection('gitpodServer', window.parent, '*');
         const factory = new JsonRpcProxyFactory<S>();
@@ -28,6 +31,12 @@ function createGitpodService<C extends GitpodClient, S extends GitpodServer>() {
             .withApi();
 
         const connectionProvider = new WebSocketConnectionProvider();
+        let _websocket: any;
+        const _createWebSocket = connectionProvider.createWebSocket;
+        connectionProvider.createWebSocket = (url) => {
+            return (_websocket = _createWebSocket(url));
+        }
+
 
         let numberOfErrors = 0;
         proxy = connectionProvider.createProxy<S>(host.toString(), undefined, {
@@ -38,8 +47,13 @@ function createGitpodService<C extends GitpodClient, S extends GitpodServer>() {
                 }
             }
         });
+
+        if (_websocket && "reconnect" in _websocket) {
+            reconnect = () => { (_websocket as any).reconnect() };
+        }
     }
     const service = new GitpodServiceImpl<C, S>(proxy);
+    (service as any).reconnect = reconnect;
     return service;
 }
 
@@ -52,8 +66,9 @@ let gitpodService = window.gitpodService || (window.gitpodService = createGitpod
 
 // allow to reconnect
 const reconnect = () => {
-    window.gitpodService?.server?.dispose();
-    gitpodService = window.gitpodService = createGitpodService();
+    if (window.gitpodService && "reconnect" in window.gitpodService) {
+        (window.gitpodService as any).reconnect();
+    }
 }
 
 export { gitpodService, reconnect };
