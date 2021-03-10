@@ -114,11 +114,16 @@ async function build(context, version) {
             werft.phase("publish", "publishing Helm chart...");
             publishHelmChart("gcr.io/gitpod-io/self-hosted", version);
 
-            werft.phase("publish", `creating GitHub release ${version}...`);
-            const releaseBranch = exec("git rev-parse --abbrev-ref HEAD", {silent: true}).stdout.trim();
-            const releaseFilesTmpDir = exec(`scripts/create-release-tars.sh ${version}`, {silent: true}).stdout.trim();
+            werft.phase("publish", `preparing GitHub release files...`);
+            const releaseFilesTmpDir = exec("mktemp -d", { silent: true }).stdout.trim();
+            const releaseTarName = "release.tar.gz";
+            exec(`leeway build --werft=true chart:release-tars -Dversion=${version} -DimageRepoBase=${imageRepo} --save ${releaseFilesTmpDir}/${releaseTarName}`);
+            exec(`cd ${releaseFilesTmpDir} && tar xzf ${releaseTarName} && rm -f ${releaseTarName}`)
+
+            werft.phase("publish", `publishing GitHub release ${version}...`);
             const prereleaseFlag = semver.prerelease(version) !== null ? "-prerelease" : "";
             const tag = `v${version}`;
+            const releaseBranch = exec("git rev-parse --abbrev-ref HEAD", {silent: true}).stdout.trim();
             const description = `Gitpod Self-Hosted Docs: https://www.gitpod.io/docs/self-hosted/latest/self-hosted/`;
             exec(`github-release ${prereleaseFlag} gitpod-io/gitpod ${tag} ${releaseBranch} ${description} "${releaseFilesTmpDir}/*"`)
 
