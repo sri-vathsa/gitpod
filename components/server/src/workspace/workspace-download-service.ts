@@ -29,6 +29,7 @@ export class WorkspaceDownloadService {
 
     protected addDownloadHandler(router: express.Router) {
         router.get("/get/:id", async (req, res, next) => {
+            log.info("download handler /get/:id called");
             if (!req.isAuthenticated() || !User.is(req.user)) {
                 res.sendStatus(500);
                 return;
