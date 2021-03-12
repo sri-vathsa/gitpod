@@ -11,13 +11,15 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/golang/protobuf/jsonpb"
-	proto "github.com/golang/protobuf/proto"
+	// "github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
+	// proto "github.com/golang/protobuf/proto"
 	"github.com/opentracing/opentracing-go"
 	tracelog "github.com/opentracing/opentracing-go/log"
 	"github.com/sirupsen/logrus"
 	jaeger "github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
+	proto "google.golang.org/protobuf/proto"
 
 	"github.com/gitpod-io/gitpod/common-go/log"
 )
@@ -158,8 +160,10 @@ func LogRequestSafe(span opentracing.Span, req proto.Message) {
 
 // LogMessageSafe logs a grpc message but redacts passwords and secrets
 func LogMessageSafe(span opentracing.Span, name string, req proto.Message) {
-	mm := &jsonpb.Marshaler{}
-	reqs, _ := mm.MarshalToString(req)
+	// mm := &jsonpb.Marshaler{}
+	// reqs, _ := mm.MarshalToString(req)
+	reqs := protojson.Format(req)
+
 	safeReqs, err := log.RedactJSON([]byte(reqs))
 
 	var msg string
