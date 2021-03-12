@@ -41,6 +41,7 @@ export interface GuardedSnapshot {
     kind: "snapshot";
     subject: Snapshot | undefined;
     workspaceOwnerID: string;
+    workspaceID?: string;
 }
 
 export interface GuardedUserStorage {
@@ -229,7 +230,7 @@ export namespace ScopedResourceGuard {
             case "gitpodToken":
                 return resource.subject.tokenHash;
             case "snapshot":
-                return resource.subject ? resource.subject.id : undefined;
+                return resource.subject ? resource.subject.id : resource.workspaceID;
             case "token":
                 return resource.subject.value;
             case "user":

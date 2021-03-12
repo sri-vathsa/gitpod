@@ -640,7 +640,7 @@ export class WorkspaceStarter {
 
             "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "workspace", subjectID: workspace.id, operations: ["get", "update"]}),
             "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "workspaceInstance", subjectID: instance.id, operations: ["get", "update", "delete"]}),
-            "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "snapshot", subjectID: "*", operations: ["create", "get"]}),
+            "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "snapshot", subjectID: workspace.id, operations: ["create"]}),
             "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "gitpodToken", subjectID: "*", operations: ["create"]}),
             "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "userStorage", subjectID: "*", operations: ["create", "get", "update"]}),
             "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "token", subjectID: "*", operations: ["get"]}),
