@@ -78,7 +78,7 @@ func ServeWorkspace(uidmapper *Uidmapper) func(ctx context.Context, ws *session.
 		}
 
 		//nolint:ineffassign
-		span, ctx := opentracing.StartSpanFromContext(ctx, "iws.ServeWorkspace")
+		span, _ := opentracing.StartSpanFromContext(ctx, "iws.ServeWorkspace")
 		defer tracing.FinishSpan(span, &err)
 
 		helper := &InWorkspaceServiceServer{

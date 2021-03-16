@@ -320,7 +320,7 @@ func periodicConsumer(delegate consumer, period time.Duration) consumer {
 	}
 }
 
-func noopValidator(t *testing.T, samples []*sample) {}
+// func noopValidator(t *testing.T, samples []*sample) {}
 
 // aucValidator limits the area under curve of GrantedReq, i.e. the actual CPU consumed
 func aucValidator(limit int64) validator {
