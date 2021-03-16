@@ -882,6 +882,10 @@ func (p *PresignedGCPStorage) SignUpload(ctx context.Context, bucket, object str
 
 func (p *PresignedGCPStorage) DeleteObject(ctx context.Context, bucket string, query *DeleteObjectQuery) (err error) {
 	client, err := newGCPClient(ctx, p.config)
+	err = client.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer client.Close()
 
 	if query.Name != "" {
