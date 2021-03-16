@@ -230,7 +230,10 @@ func TestWaitOrMarkForDisposalRace(t *testing.T) {
 
 				time.Sleep(1 * time.Second)
 				t.Logf("num go routines: %03d", runtime.NumGoroutine())
-				ws.Dispose(ctx)
+				err := ws.Dispose(ctx)
+				if err != nil {
+					t.Errorf("Error in dispose")
+				}
 			}
 		}()
 	}

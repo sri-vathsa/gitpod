@@ -415,6 +415,12 @@ func (s *WorkspaceService) DisposeWorkspace(ctx context.Context, req *api.Dispos
 	return resp, nil
 }
 
+func Check(f func() error) {
+	if err := f(); err != nil {
+		fmt.Println("Received error:", err)
+	}
+}
+
 func (s *WorkspaceService) uploadWorkspaceContent(ctx context.Context, sess *session.Workspace, backupName, mfName string) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "uploadWorkspaceContent")
 	defer tracing.FinishSpan(span, &err)
@@ -490,8 +496,11 @@ func (s *WorkspaceService) uploadWorkspaceContent(ctx context.Context, sess *ses
 		if err != nil {
 			return
 		}
-		tmpf.Sync()
-		tmpf.Seek(0, 0)
+		Check(tmpf.Sync)
+		_, err = tmpf.Seek(0, 0)
+		if err != nil {
+			fmt.Println("Received error:", err)
+		}
 		tmpfDigest, err = digest.FromReader(tmpf)
 		if err != nil {
 			return

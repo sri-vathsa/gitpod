@@ -131,6 +131,13 @@ func (g *DirectController) Close() error {
 	return nil
 }
 
+// Wrapper function to be used with defer
+func Check(f func() error) {
+	if err := f(); err != nil {
+		fmt.Println("Received error:", err)
+	}
+}
+
 func (g *DirectController) updateHostsFile(inc <-chan hostUpdate) {
 	for {
 		var update hostUpdate
@@ -149,7 +156,7 @@ func (g *DirectController) updateHostsFile(inc <-chan hostUpdate) {
 			if !ok {
 				return xerrors.Errorf("cannot acquire lock")
 			}
-			defer g.unlockHostsFile()
+			defer Check(g.unlockHostsFile)
 
 			_, err = g.hostsFD.Seek(0, 0)
 			if err != nil {

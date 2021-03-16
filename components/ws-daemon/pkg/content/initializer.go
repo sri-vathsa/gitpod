@@ -254,7 +254,7 @@ func RunInitializerChild() (err error) {
 	}
 
 	var initmsg msgInitContent
-	json.Unmarshal(fc, &initmsg)
+	err = json.Unmarshal(fc, &initmsg)
 	if err != nil {
 		return err
 	}
