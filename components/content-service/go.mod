@@ -8,7 +8,7 @@ require (
 	github.com/gitpod-io/gitpod/content-service/api v0.0.0-00010101000000-000000000000
 	github.com/go-ozzo/ozzo-validation v3.5.0+incompatible
 	github.com/golang/protobuf v1.4.3
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.1.4 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
@@ -31,6 +31,8 @@ require (
 )
 
 replace github.com/gitpod-io/gitpod/common-go => ../common-go // leeway
+
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.5
 
 replace github.com/gitpod-io/gitpod/content-service/api => ../content-service-api/go // leeway
 

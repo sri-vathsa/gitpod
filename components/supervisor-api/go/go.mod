@@ -9,3 +9,5 @@ require (
 	google.golang.org/grpc v1.33.1
 	google.golang.org/protobuf v1.25.0
 )
+
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.5

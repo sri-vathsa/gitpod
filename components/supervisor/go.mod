@@ -18,7 +18,7 @@ require (
 	github.com/gitpod-io/gitpod/ws-daemon/api v0.0.0-00010101000000-000000000000
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.1.4
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
@@ -34,6 +34,8 @@ require (
 	google.golang.org/grpc/examples v0.0.0-20200902210233-8630cac324bf // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 )
+
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.5
 
 replace github.com/gitpod-io/gitpod/common-go => ../common-go // leeway
 

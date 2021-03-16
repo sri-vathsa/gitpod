@@ -29,7 +29,7 @@ require (
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/golang/protobuf v1.4.3
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.5
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/opencontainers/go-digest v1.0.0
@@ -53,6 +53,8 @@ require (
 	k8s.io/apimachinery v0.20.4
 	k8s.io/client-go v0.0.0
 )
+
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.5
 
 replace github.com/gitpod-io/gitpod/common-go => ../common-go // leeway
 
