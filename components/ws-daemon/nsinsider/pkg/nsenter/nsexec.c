@@ -110,6 +110,7 @@ void join_ns(char *fdstr, int nstype)
 
 void nsexec(void)
 {
+    int unused __attribute__((unused));
 	char *in_init = getenv("_LIBNSENTER_INIT");
 	if (in_init == NULL || *in_init == '\0')
 		return;
@@ -136,13 +137,14 @@ void nsexec(void)
 	char *rootfd = getenv("_LIBNSENTER_ROOTFD");
 	if (rootfd != NULL) {
 		write_log(DEBUG, "chroot: %s", rootfd);
-		fchdir(atoi(rootfd));
-		chroot(".");
+
+		unused = fchdir(atoi(rootfd));
+		unused = chroot(".");
 	}
 	char *cwdfd = getenv("_LIBNSENTER_CWDFD");
 	if (cwdfd != NULL) {
 		write_log(DEBUG, "chcwd: %s", cwdfd);
-		fchdir(atoi(cwdfd));
+		unused = fchdir(atoi(cwdfd));
 	}
 
 	char *netnsfd = getenv("_LIBNSENTER_NETNSFD");
@@ -164,7 +166,7 @@ void nsexec(void)
 	if (pid == 0) {
 		/* child process*/
 		/* Finish executing, let the Go runtime take over. */
-		write(1, "", 1); // write NULL byte
+		unused = write(1, "", 1); // write NULL byte
 		return;
 	}
 
