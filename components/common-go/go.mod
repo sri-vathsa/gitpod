@@ -22,7 +22,7 @@ require (
 
 replace k8s.io/api => k8s.io/api v0.20.4
 
-replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.5
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.6
 
 replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.4
 

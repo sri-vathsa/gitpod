@@ -35,7 +35,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 )
 
-replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.5
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.6
 
 replace github.com/gitpod-io/gitpod/common-go => ../common-go // leeway
 

@@ -32,7 +32,7 @@ require (
 
 replace github.com/gitpod-io/gitpod/common-go => ../common-go // leeway
 
-replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.5
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.6
 
 replace github.com/gitpod-io/gitpod/content-service/api => ../content-service-api/go // leeway
 
