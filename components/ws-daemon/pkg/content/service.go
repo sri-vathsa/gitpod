@@ -112,7 +112,7 @@ func (s *WorkspaceService) Start() {
 // InitWorkspace intialises a new workspace folder in the working area
 func (s *WorkspaceService) InitWorkspace(ctx context.Context, req *api.InitWorkspaceRequest) (resp *api.InitWorkspaceResponse, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "InitWorkspace")
-	tracing.LogRequestSafe(span, req)
+	// tracing.LogRequestSafe(span, req)
 	defer func() {
 		tracing.FinishSpan(span, &err)
 
@@ -333,7 +333,7 @@ func getCheckoutLocation(req *api.InitWorkspaceRequest) string {
 func (s *WorkspaceService) DisposeWorkspace(ctx context.Context, req *api.DisposeWorkspaceRequest) (resp *api.DisposeWorkspaceResponse, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "DisposeWorkspace")
 	tracing.ApplyOWI(span, log.OWI("", "", req.Id))
-	tracing.LogRequestSafe(span, req)
+	// tracing.LogRequestSafe(span, req)
 	defer tracing.FinishSpan(span, &err)
 	log.WithField("req", req.String()).WithFields(log.OWI("", "", req.Id)).Debug("DisposeWorkspace called")
 
