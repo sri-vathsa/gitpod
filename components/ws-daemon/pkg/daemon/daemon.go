@@ -30,7 +30,7 @@ import (
 func NewDaemon(config Config, reg prometheus.Registerer) (*Daemon, error) {
 	clientset, err := newClientSet(config.Runtime.Kubeconfig)
 	if err != nil {
-
+		log.Debug("Empty if condition")
 	}
 	containerRuntime, err := container.FromConfig(config.Runtime.Container)
 	if err != nil {

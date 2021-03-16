@@ -95,6 +95,7 @@ func (d *DispatchListener) WorkspaceAdded(ctx context.Context, ws *dispatch.Work
 	} else if len(d.Config.CPUBuckets) > 0 {
 		cpuLimiter = &ClampingBucketLimiter{Buckets: d.Config.CPUBuckets}
 	} else {
+		log.Debug("There's no limiter configured - neither buckets nor a fixed one.")
 		// There's no limiter configured - neither buckets nor a fixed one.
 		// We'll leave cpuLimiter nil which effectively disables the CPU limiting.
 	}
