@@ -36,7 +36,10 @@ var validateConfigCmd = &cobra.Command{
 
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(cfg)
+		err = enc.Encode(cfg)
+		if err != nil {
+			log.Debug("cannot Encode configuration")
+		}
 	},
 }
 
