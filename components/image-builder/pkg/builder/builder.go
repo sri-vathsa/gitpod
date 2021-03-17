@@ -128,7 +128,7 @@ func (b *DockerBuilder) ResolveBaseImage(ctx context.Context, req *api.ResolveBa
 	span, ctx := opentracing.StartSpanFromContext(ctx, "ResolveBaseImage")
 	defer tracing.FinishSpan(span, &err)
 
-	tracing.LogRequestSafe(span, req)
+	// tracing.LogRequestSafe(span, req)
 
 	reqauth := b.resolveRequestAuth(req.Auth)
 
@@ -146,7 +146,7 @@ func (b *DockerBuilder) ResolveBaseImage(ctx context.Context, req *api.ResolveBa
 func (b *DockerBuilder) ResolveWorkspaceImage(ctx context.Context, req *api.ResolveWorkspaceImageRequest) (resp *api.ResolveWorkspaceImageResponse, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "ResolveWorkspaceImage")
 	defer tracing.FinishSpan(span, &err)
-	tracing.LogRequestSafe(span, req)
+	// tracing.LogRequestSafe(span, req)
 
 	reqauth := b.resolveRequestAuth(req.Auth)
 	baseref, err := b.getBaseImageRef(ctx, req.Source, reqauth)
@@ -187,7 +187,7 @@ func (b *DockerBuilder) ResolveWorkspaceImage(ctx context.Context, req *api.Reso
 func (b *DockerBuilder) Build(req *api.BuildRequest, resp api.ImageBuilder_BuildServer) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(resp.Context(), "Build")
 	defer tracing.FinishSpan(span, &err)
-	tracing.LogRequestSafe(span, req)
+	// tracing.LogRequestSafe(span, req)
 
 	if b.builderref == "" {
 		return status.Error(codes.FailedPrecondition, "no selfbuild available - this image-builder is really broken (missing Start() call)")
@@ -447,7 +447,7 @@ func (b *DockerBuilder) createBuildVolume(ctx context.Context, buildID string) (
 	logs := bytes.NewBuffer(nil)
 	err = b.runContainer(ctx, logs, initcontainer.ID)
 	if err != nil {
-		return "", xerrors.Errorf("cannot create build volume: %w", string(logs.Bytes()))
+		return "", xerrors.Errorf("cannot create build volume: %w", string(logs.String()))
 	}
 
 	return buildVolName, nil
@@ -722,7 +722,7 @@ func (b *DockerBuilder) Logs(req *api.LogsRequest, resp api.ImageBuilder_LogsSer
 	span.SetTag("buildRef", req.BuildRef)
 	defer tracing.FinishSpan(span, &err)
 
-	tracing.LogRequestSafe(span, req)
+	// tracing.LogRequestSafe(span, req)
 
 	b.mu.RLock()
 	bld, exists := b.builds[req.BuildRef]
@@ -1012,7 +1012,7 @@ func (s *build) Write(p []byte) (n int, err error) {
 			return 0, err
 		}
 	}
-	n, err = s.logs.Write(p)
+	_, err = s.logs.Write(p)
 	if err != nil {
 		return 0, err
 	}
