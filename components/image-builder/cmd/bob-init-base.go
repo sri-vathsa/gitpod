@@ -101,7 +101,10 @@ var bobInitBase = &cobra.Command{
 			c.Dir = ctxwd
 			c.Stdout = log.Log.WriterLevel(logrus.InfoLevel)
 			c.Stderr = log.Log.WriterLevel(logrus.ErrorLevel)
-			c.Run()
+			err := c.Run()
+			if err != nil {
+				log.WithError(err).Printf("Run failed")
+			}
 		}
 	},
 }
