@@ -184,7 +184,12 @@ func (b *DockerBuilder) serveContext(ctx context.Context, bld *build, volume, pa
 	if err != nil {
 		return xerrors.Errorf("cannot run context server: %w", err)
 	}
-	defer b.Docker.ContainerStop(ctx, serverContainer.ID, nil)
+
+	defer func() {
+		if err := b.Docker.ContainerStop(ctx, serverContainer.ID, nil); err != nil {
+			log.Error(err)
+		}
+	}()
 
 	// wait for the context server to finish
 	okchan, errchan := b.Docker.ContainerWait(ctx, serverContainer.ID, container.WaitConditionNotRunning)
