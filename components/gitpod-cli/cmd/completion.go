@@ -5,9 +5,9 @@
 package cmd
 
 import (
-	"os"
-
+	"fmt"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 // completionCmd represents the completion command
@@ -25,7 +25,10 @@ To configure your bash shell to load completions for each session add to your ba
 . <(gp completion)
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		rootCmd.GenBashCompletion(os.Stdout)
+		err := rootCmd.GenBashCompletion(os.Stdout)
+		if err != nil {
+			fmt.Println("Received error in generating bash completion:", err)
+		}
 	},
 }
 
