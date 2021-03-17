@@ -17,21 +17,26 @@ RUN mkdir -p /theia/node/bin \
 
 FROM alpine:3.9 AS builder_alpine
 
-RUN apk add --no-cache bash gcc g++ make pkgconfig python libc6-compat libexecinfo-dev git patchelf findutils curl jq
+RUN apk add --no-cache bash libgcc libstdc++ musl gcc g++ make pkgconfig python libc6-compat libexecinfo-dev \ 
+    git yarn findutils curl jq automake autoconf
 
+RUN wget https://github.com/NixOS/patchelf/archive/0.12.tar.gz  -O ./patchelf-0.12.tar.gz
+RUN tar zvxf patchelf-0.12.tar.gz
+RUN cd patchelf-0.12 && ./bootstrap.sh && ./configure && make && make check && make install
 # install node
 COPY --from=node_installer /theia/node/ /theia/node/
 ENV PATH=$PATH:/theia/node/bin/
 
 
 # install yarn by download+unpack to ensure it does NOT put anything into /theia/node/
-RUN wget https://github.com/yarnpkg/yarn/releases/download/v1.15.2/yarn-v1.15.2.tar.gz
-RUN tar zvxf yarn-v1.15.2.tar.gz
-ENV PATH=$PATH:/yarn-v1.15.2/bin/
+ENV PATH=$PATH:/opt/yarn-1.22.5/bin
+# RUN wget https://github.com/yarnpkg/yarn/releases/download/v1.15.2/yarn-v1.15.2.tar.gz
+# RUN tar zvxf yarn-v1.15.2.tar.gz
+# ENV PATH=$PATH:/yarn-v1.15.2/bin/
 
 # yq - jq for YAML files
 RUN cd /usr/bin \
-    && curl -fsSL https://github.com/mikefarah/yq/releases/download/2.4.0/yq_linux_amd64 > yq \
+    && curl -fsSL https://github.com/mikefarah/yq/releases/download/2.4.0/yq_linux_arm64 > yq \
     && chmod +x yq
 ENV PATH=$PATH:/usr/bin/
 
