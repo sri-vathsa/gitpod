@@ -3,6 +3,8 @@ defaultTarget: components:all
 defaultArgs:
   coreYarnLockBase: ../..
   publishToNPM: true
+  imageRepoBase: 082830052325.dkr.ecr.us-east-1.amazonaws.com
+  version: amd-armcode-test
 
 defaultVariant: 
   config:
