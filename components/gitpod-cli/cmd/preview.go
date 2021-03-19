@@ -15,7 +15,7 @@ import (
 	"github.com/gitpod-io/gitpod/gitpod-cli/pkg/theialib"
 )
 
-var regexLocalhost = regexp.MustCompile("((^(localhost|127\\.0\\.0\\.1))|(https?://(localhost|127\\.0\\.0\\.1)))(:[0-9]+)?")
+var regexLocalhost = regexp.MustCompile(`((^(localhost|127\.0\.0\.1))|(https?:\/\/(localhost|127\\.0\\.0\\.1)))(:[0-9]+)?`)
 
 // previewCmd represents the preview command
 var previewCmd = &cobra.Command{
