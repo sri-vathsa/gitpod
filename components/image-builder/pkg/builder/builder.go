@@ -1012,7 +1012,7 @@ func (s *build) Write(p []byte) (n int, err error) {
 			return 0, err
 		}
 	}
-	n, err = s.logs.Write(p)
+	_, err = s.logs.Write(p)
 	if err != nil {
 		return 0, err
 	}
