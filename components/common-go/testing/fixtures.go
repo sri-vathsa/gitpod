@@ -59,7 +59,10 @@ func (ft *FixtureTest) Run() {
 				return
 			}
 			if msg, ok := fixture.(proto.Message); ok {
-				jsonpb.Unmarshal(bytes.NewReader(fd), msg)
+				err = jsonpb.Unmarshal(bytes.NewReader(fd), msg)
+				if err != nil {
+					fmt.Printf("Error: %v", err)
+				}
 			} else {
 				err = json.Unmarshal(fd, fixture)
 				if err != nil {
