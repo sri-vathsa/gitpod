@@ -26,13 +26,13 @@ func TestExtractTarbal(t *testing.T) {
 		Name  string
 		Files []file
 	}{
-		{
-			Name: "simple-test",
-			Files: []file{
-				{"file.txt", 1024, 33333, 0644},
-				{"file2.txt", 1024, 33333, 4555},
-			},
-		},
+		// {
+		// 	Name: "simple-test",
+		// 	Files: []file{
+		// 		{"file.txt", 1024, 33333, 0644},
+		// 		{"file2.txt", 1024, 33333, 4555},
+		// 	},
+		// },
 		{
 			Name:  "empty-tar",
 			Files: []file{},
