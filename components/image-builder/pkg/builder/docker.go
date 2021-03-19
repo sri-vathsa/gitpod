@@ -178,7 +178,12 @@ func (b *DockerBuilder) serveContext(ctx context.Context, bld *build, volume, pa
 	}
 	defer contextstream.Close()
 
-	go io.Copy(out, base64.NewDecoder(base64.RawStdEncoding, contextstream.Reader))
+	go func() {
+		_, err := io.Copy(out, base64.NewDecoder(base64.RawStdEncoding, contextstream.Reader))
+		if err != nil {
+			log.Printf("Error in io copy: %v", err)
+		}
+	}()
 
 	err = b.Docker.ContainerStart(ctx, serverContainer.ID, types.ContainerStartOptions{})
 	if err != nil {
