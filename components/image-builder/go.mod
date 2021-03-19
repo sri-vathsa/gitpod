@@ -40,6 +40,8 @@ require (
 	gotest.tools v2.2.0+incompatible // indirect
 )
 
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.6
+
 replace github.com/gitpod-io/gitpod/common-go => ../common-go // leeway
 
 replace github.com/gitpod-io/gitpod/content-service => ../content-service // leeway
