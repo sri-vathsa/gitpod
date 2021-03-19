@@ -184,7 +184,12 @@ func (b *DockerBuilder) serveContext(ctx context.Context, bld *build, volume, pa
 	if err != nil {
 		return xerrors.Errorf("cannot run context server: %w", err)
 	}
-	defer b.Docker.ContainerStop(ctx, serverContainer.ID, nil)
+
+	defer func() {
+		if err := b.Docker.ContainerStop(ctx, serverContainer.ID, nil); err != nil {
+			fmt.Printf("Error in stopping container: %v", err)
+		}
+	}()
 
 	// wait for the context server to finish
 	okchan, errchan := b.Docker.ContainerWait(ctx, serverContainer.ID, container.WaitConditionNotRunning)
@@ -269,7 +274,7 @@ func (b *DockerBuilder) getBaseImageRef(ctx context.Context, bs *api.BuildSource
 
 func (b *DockerBuilder) getWorkspaceImageRef(ctx context.Context, baseref string, gitpodLayerHash string, allowedAuth allowedAuthFor) (ref string, err error) {
 	//nolint:ineffassign
-	span, ctx := opentracing.StartSpanFromContext(ctx, "getWorkspaceImageRef")
+	span, _ := opentracing.StartSpanFromContext(ctx, "getWorkspaceImageRef")
 	defer tracing.FinishSpan(span, &err)
 
 	cnt := []byte(fmt.Sprintf("%s\n%s\n%s", baseref, gitpodLayerHash, b.Config.ImageBuildSalt))
