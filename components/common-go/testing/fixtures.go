@@ -113,7 +113,11 @@ func (ft *FixtureTest) Run() {
 					return
 				}
 
-				json.Unmarshal(expected, expectedResult)
+				err = json.Unmarshal(expected, expectedResult)
+				if err != nil {
+					fmt.Printf("cannot unmarshal %s: %v", fn, err)
+				}
+
 				diff := deep.Equal(expectedResult, result)
 
 				t.Errorf("fixture %s: %v", fn, diff)
