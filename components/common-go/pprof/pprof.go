@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
+	// "time"
 
 	"github.com/gitpod-io/gitpod/common-go/log"
 )
@@ -75,13 +75,13 @@ func index(w http.ResponseWriter, r *http.Request) {
 	pprof.Index(w, r)
 }
 
-func sleep(w http.ResponseWriter, d time.Duration) {
-	var clientGone <-chan bool
-	if cn, ok := w.(http.CloseNotifier); ok {
-		clientGone = cn.CloseNotify()
-	}
-	select {
-	case <-time.After(d):
-	case <-clientGone:
-	}
-}
+// func sleep(w http.ResponseWriter, d time.Duration) {
+// 	var clientGone <-chan bool
+// 	if cn, ok := w.(http.CloseNotifier); ok {
+// 		clientGone = cn.CloseNotify()
+// 	}
+// 	select {
+// 	case <-time.After(d):
+// 	case <-clientGone:
+// 	}
+// }

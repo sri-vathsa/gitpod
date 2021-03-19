@@ -62,13 +62,13 @@ delete environment variables with a repository pattern of */foo, foo/* or */*.
 
 				key := strings.TrimSpace(kv[0])
 				if key == "" {
-					fail(fmt.Sprintf("variable must have a name"))
+					fail("variable must have a name")
 				}
 				// Do not trim value - the user might want whitespace here
 				// Also do not check if the value is empty, as an empty value means we want to delete the variable
 				val := kv[1]
 				if val == "" {
-					fail(fmt.Sprintf("variable must have a value; use -u to unset a variable"))
+					fail("variable must have a value; use -u to unset a variable")
 				}
 
 				vars[i] = theialib.EnvironmentVariable{Name: key, Value: val}
