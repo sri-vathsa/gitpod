@@ -40,8 +40,7 @@ var runCmd = &cobra.Command{
 		if err := cfg.Builder.Validate(); err != nil {
 			log.WithError(err).Fatal("builder configuration is invalid")
 		}
-
-		client, err := docker.NewClientWithOpts()
+		client, err := docker.NewClientWithOpts(docker.FromEnv, docker.WithAPIVersionNegotiation())
 		if err != nil {
 			log.Fatal(err)
 		}
