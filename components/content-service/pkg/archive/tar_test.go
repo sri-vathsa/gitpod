@@ -8,6 +8,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -72,7 +73,12 @@ func TestExtractTarbal(t *testing.T) {
 				t.Fatalf("cannot prepare test: %v", err)
 			}
 			targetFolder := filepath.Join(wd, "target")
-			os.MkdirAll(targetFolder, 0777)
+
+			err = os.MkdirAll(targetFolder, 0777)
+			if err != nil {
+				fmt.Printf("cannot create all directories: %v", err)
+			}
+
 			err = ExtractTarbal(context.Background(), buf, targetFolder)
 			if err != nil {
 				t.Fatalf("cannot extract tar content: %v", err)
