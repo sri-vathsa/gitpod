@@ -188,8 +188,10 @@ func downloadOTS(ctx context.Context, url string) (user, pwd string, err error) 
 		if err != nil {
 			return "", "", err
 		}
-		opentracing.GlobalTracer().Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
-
+		err = opentracing.GlobalTracer().Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
+		if err != nil {
+			fmt.Printf("Error in global tracer: %v", err)
+		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return "", "", err
