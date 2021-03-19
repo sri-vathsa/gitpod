@@ -111,7 +111,7 @@ func (p *PrebuildInitializer) Run(ctx context.Context, mappings []archive.IDMapp
 		if didStash {
 			err = p.Git.Git(ctx, "stash", "pop")
 			if err != nil {
-				log.Fatal("Error Git.Git failed with error: %v", err)
+				log.Fatal("Error Git.Git failed with error:", err)
 			}
 		}
 
