@@ -29,7 +29,7 @@ import (
 const (
 	// DefaultGhostOwner is the UID of the default owner for ghost workspaces
 	DefaultGhostOwner = "00000000-0000-0000-0000-000000000000"
-	maxGhostStartTime = 15 * time.Minute
+	// maxGhostStartTime = 15 * time.Minute
 )
 
 // WorkspaceManagerPrescaleDriverConfig configures a ws-manager based prescale driver
