@@ -246,8 +246,11 @@ func newPodInfoQueue(lessFunc LessFunc, metrics metrics.MetricRecorder) *podInfo
 	return &podInfoQueue{
 		lessFunc: lessFunc,
 		queue:    make([]*item, 0),
-		items:    make(map[string]*item, 0),
-		metrics:  metrics,
+		// TODO: This may not work
+		// items:    make(map[string]*item, 0),
+		items: make(map[string]*item),
+
+		metrics: metrics,
 	}
 }
 
