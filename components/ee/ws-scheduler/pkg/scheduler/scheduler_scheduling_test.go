@@ -532,9 +532,11 @@ func waitForAllGhostToBeDeleted(t *testing.T, ctx context.Context, client *fakek
 				}
 
 				for _, p := range list.Items {
-					if _, exists := toDelete[p.Name]; exists {
-						continue
-					}
+					_, exists := toDelete[p.Name]
+					fmt.Printf("%v", exists)
+					// exists {
+					// continue
+					// }
 				}
 				return
 			case <-ctx.Done():
