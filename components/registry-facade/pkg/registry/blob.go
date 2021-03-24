@@ -270,7 +270,7 @@ type configBlobSource struct {
 	Manifest       *ociv1.Manifest
 	ConfigModifier ConfigModifier
 
-	cfg []byte
+	// cfg []byte
 }
 
 func (pbs *configBlobSource) HasBlob(ctx context.Context, spec *api.ImageSpec, dgst digest.Digest) bool {
