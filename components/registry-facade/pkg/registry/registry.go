@@ -422,7 +422,7 @@ type dispatchFunc func(ctx context.Context, r *http.Request) http.Handler
 func dispatcher(d dispatchFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fc, _ := httputil.DumpRequest(r, false)
-		fmt.Fprintf(os.Stderr, string(fc))
+		fmt.Printf("%v", string(fc))
 
 		// Get context from request, add vars and other info and sync back
 		ctx := r.Context()
