@@ -219,7 +219,13 @@ func (reg *Registry) Serve() error {
 		// HTTP service.
 		//
 		// Note: this is is just meant for a telepresence setup
-		go http.ListenAndServe(addr, mux)
+
+		go func() {
+			err := http.ListenAndServe(addr, mux)
+			if err != nil {
+				log.Printf("Error in io copy: %v", err)
+			}
+		}()
 	}
 
 	addr := fmt.Sprintf(":%d", reg.Config.Port)
@@ -513,14 +519,14 @@ func getReference(ctx context.Context) string {
 }
 
 // getUploadUUID extracts the upload uuid var from the context which was passed in through the mux route
-func getUploadUUID(ctx context.Context) string {
-	val := ctx.Value("vars.uuid")
-	sval, ok := val.(string)
-	if !ok {
-		return ""
-	}
-	return sval
-}
+// func getUploadUUID(ctx context.Context) string {
+// 	val := ctx.Value("vars.uuid")
+// 	sval, ok := val.(string)
+// 	if !ok {
+// 		return ""
+// 	}
+// 	return sval
+// }
 
 // getDigest extracts the digest var from the context which was passed in through the mux route
 func getDigest(ctx context.Context) string {
