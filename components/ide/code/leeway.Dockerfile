@@ -17,7 +17,7 @@ RUN mkdir -p /ide/node/bin \
 RUN cp /ide/node/bin/node /ide/node/bin/gitpod-node && rm /ide/node/bin/node
 
 
-FROM mcr.microsoft.com/vscode/devcontainers/typescript-node:0-12 as code_installer
+FROM 082830052325.dkr.ecr.us-east-1.amazonaws.com/typescript-node:arm as code_installer
 
 
 # see https://github.com/gitpod-io/vscode/blob/bdeca3f8709b70b339f41fc2a14e94f83d6475ac/.github/workflows/ci.yml#L130
