@@ -8,12 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
-	"mime"
-	"net/http"
-	"strings"
-	"time"
-
+	"fmt"
 	"github.com/containerd/containerd/content"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/remotes"
@@ -25,6 +20,11 @@ import (
 	"github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opentracing/opentracing-go"
+	"io"
+	"mime"
+	"net/http"
+	"strings"
+	"time"
 )
 
 func (reg *Registry) handleBlob(ctx context.Context, r *http.Request) http.Handler {
@@ -106,6 +106,7 @@ func (bh *blobHandler) getBlob(w http.ResponseWriter, r *http.Request) {
 			}
 
 			acceptTypes = append(acceptTypes, mediaType)
+			fmt.Printf("accept types: %v", acceptTypes)
 		}
 	}
 
