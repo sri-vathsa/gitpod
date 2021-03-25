@@ -6,6 +6,7 @@ package daemon
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -30,7 +31,7 @@ import (
 func NewDaemon(config Config, reg prometheus.Registerer) (*Daemon, error) {
 	clientset, err := newClientSet(config.Runtime.Kubeconfig)
 	if err != nil {
-
+		fmt.Printf("Error: %v", err)
 	}
 	containerRuntime, err := container.FromConfig(config.Runtime.Container)
 	if err != nil {

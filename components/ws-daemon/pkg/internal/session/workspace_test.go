@@ -18,19 +18,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
-
-	"github.com/gitpod-io/gitpod/content-service/pkg/storage"
+	// "github.com/gitpod-io/gitpod/content-service/pkg/storage"
 )
 
 func init() {
 	logrus.SetLevel(logrus.WarnLevel)
 }
 
-type emptySP struct{}
+// type emptySP struct{}
 
-func (*emptySP) NewStorage() (storage.DirectAccess, error) {
-	return &storage.DirectNoopStorage{}, nil
-}
+// func (*emptySP) NewStorage() (storage.DirectAccess, error) {
+// 	return &storage.DirectNoopStorage{}, nil
+// }
 
 func getTestStore() (*Store, error) {
 	loc, err := os.MkdirTemp("", "wsdaemon-test")
@@ -230,7 +229,7 @@ func TestWaitOrMarkForDisposalRace(t *testing.T) {
 
 				time.Sleep(1 * time.Second)
 				t.Logf("num go routines: %03d", runtime.NumGoroutine())
-				ws.Dispose(ctx)
+				_ = ws.Dispose(ctx)
 			}
 		}()
 	}

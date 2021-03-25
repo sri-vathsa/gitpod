@@ -24,9 +24,9 @@ import (
 	"github.com/gitpod-io/gitpod/common-go/log"
 )
 
-const (
-	maxCPUSampleCount = 10
-)
+// const (
+// 	maxCPUSampleCount = 10
+// )
 
 // Controller controls a container's resource use
 type Controller struct {
@@ -40,10 +40,10 @@ type Controller struct {
 
 	cpuLimiter         ResourceLimiter
 	cpuLimiterOverride ResourceLimiter
-	cpuLoad            int64
-	cpuPrevAcct        int64
-	cpuExpenditures    *ring.Ring
-	cfsController      cfsController
+	// cpuLoad            int64
+	cpuPrevAcct     int64
+	cpuExpenditures *ring.Ring
+	cfsController   cfsController
 
 	processPriorities map[ProcessType]int
 
@@ -192,7 +192,7 @@ func (gov *Controller) Start(ctx context.Context) {
 }
 
 // see https://www.kernel.org/doc/Documentation/cgroup-v1/cpuacct.txt
-const userHZ = 100
+// const userHZ = 100
 
 func (gov *Controller) controlCPU() {
 	if gov.cpuLimiter == nil {

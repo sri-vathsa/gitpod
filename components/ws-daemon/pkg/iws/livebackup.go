@@ -38,9 +38,9 @@ type LiveWorkspaceBackup struct {
 	Location    string
 	Destination string
 
-	stop         chan struct{}
-	closeOnce    sync.Once
-	lastFSBackup *time.Time
+	stop      chan struct{}
+	closeOnce sync.Once
+	// lastFSBackup *time.Time
 }
 
 // Start starts listening for FS changes and triggers backups accordingly

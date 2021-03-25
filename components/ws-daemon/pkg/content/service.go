@@ -490,8 +490,8 @@ func (s *WorkspaceService) uploadWorkspaceContent(ctx context.Context, sess *ses
 		if err != nil {
 			return
 		}
-		tmpf.Sync()
-		tmpf.Seek(0, 0)
+		_ = tmpf.Sync()
+		_, _ = tmpf.Seek(0, 0)
 		tmpfDigest, err = digest.FromReader(tmpf)
 		if err != nil {
 			return
