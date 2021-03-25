@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
+	// "strings"
 	"syscall"
 	"time"
 
@@ -115,9 +115,9 @@ func proxyPass(config *RouteHandlerConfig, resolver targetResolver, opts ...prox
 	}
 }
 
-func isWebsocketRequest(req *http.Request) bool {
-	return strings.ToLower(req.Header.Get("Connection")) == "upgrade" && strings.ToLower(req.Header.Get("Upgrade")) == "websocket"
-}
+// func isWebsocketRequest(req *http.Request) bool {
+// 	return strings.ToLower(req.Header.Get("Connection")) == "upgrade" && strings.ToLower(req.Header.Get("Upgrade")) == "websocket"
+// }
 
 func connectErrorToCause(err error) string {
 	if err == nil {
@@ -146,16 +146,16 @@ func connectErrorToCause(err error) string {
 }
 
 // withOnProxyErrorRedirectToWorkspaceStartHandler is an error handler that redirects to gitpod.io/start/#<wsid>
-func withOnProxyErrorRedirectToWorkspaceStartHandler(config *Config) proxyPassOpt {
-	return func(h *proxyPassConfig) {
-		h.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
-			// the default impl reports all errors as 502, so we'll do the same with the rest
-			ws := getWorkspaceCoords(req)
-			redirectURL := fmt.Sprintf("%s://%s/start/#%s", config.GitpodInstallation.Scheme, config.GitpodInstallation.HostName, ws.ID)
-			http.Redirect(w, req, redirectURL, 302)
-		}
-	}
-}
+// func withOnProxyErrorRedirectToWorkspaceStartHandler(config *Config) proxyPassOpt {
+// 	return func(h *proxyPassConfig) {
+// 		h.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+// 			// the default impl reports all errors as 502, so we'll do the same with the rest
+// 			ws := getWorkspaceCoords(req)
+// 			redirectURL := fmt.Sprintf("%s://%s/start/#%s", config.GitpodInstallation.Scheme, config.GitpodInstallation.HostName, ws.ID)
+// 			http.Redirect(w, req, redirectURL, 302)
+// 		}
+// 	}
+// }
 
 func withHTTPErrorHandler(h http.Handler) proxyPassOpt {
 	return func(cfg *proxyPassConfig) {
@@ -165,11 +165,11 @@ func withHTTPErrorHandler(h http.Handler) proxyPassOpt {
 	}
 }
 
-func withErrorHandler(h errorHandler) proxyPassOpt {
-	return func(cfg *proxyPassConfig) {
-		cfg.ErrorHandler = h
-	}
-}
+// func withErrorHandler(h errorHandler) proxyPassOpt {
+// 	return func(cfg *proxyPassConfig) {
+// 		cfg.ErrorHandler = h
+// 	}
+// }
 
 func createDefaultTransport(config *TransportConfig) *http.Transport {
 	// TODO equivalent of client_max_body_size 2048m; necessary ???
