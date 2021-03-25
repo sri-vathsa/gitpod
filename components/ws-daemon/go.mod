@@ -53,6 +53,7 @@ require (
 	k8s.io/apimachinery v0.20.4
 	k8s.io/client-go v0.0.0
 )
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.6
 
 replace github.com/gitpod-io/gitpod/common-go => ../common-go // leeway
 
