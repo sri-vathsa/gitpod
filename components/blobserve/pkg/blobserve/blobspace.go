@@ -175,7 +175,7 @@ func (b *diskBlobspace) Get(name string) (fs http.FileSystem, state blobstate) {
 		return nil, blobUnready
 	}
 
-	os.WriteFile(fmt.Sprintf("%s.used", fn), nil, 0644)
+	_ = os.WriteFile(fmt.Sprintf("%s.used", fn), nil, 0644)
 	return http.Dir(fn), blobReady
 }
 
@@ -200,7 +200,7 @@ func (b *diskBlobspace) AddFromTar(ctx context.Context, name string, in io.Reade
 	cmd.Stdin = cin
 	go func() {
 		<-ctx.Done()
-		cmd.Process.Kill()
+		_ = cmd.Process.Kill()
 	}()
 
 	out, err := cmd.CombinedOutput()
@@ -208,9 +208,9 @@ func (b *diskBlobspace) AddFromTar(ctx context.Context, name string, in io.Reade
 		return xerrors.Errorf("cannot untar: %w: %s", err, string(out))
 	}
 
-	os.WriteFile(fmt.Sprintf("%s.size", fn), []byte(fmt.Sprintf("%d", cw.C)), 0644)
-	os.WriteFile(fmt.Sprintf("%s.used", fn), nil, 0644)
-	os.WriteFile(fmt.Sprintf("%s.ready", fn), nil, 0644)
+	_ = os.WriteFile(fmt.Sprintf("%s.size", fn), []byte(fmt.Sprintf("%d", cw.C)), 0644)
+	_ = os.WriteFile(fmt.Sprintf("%s.used", fn), nil, 0644)
+	_ = os.WriteFile(fmt.Sprintf("%s.ready", fn), nil, 0644)
 
 	return nil
 }
