@@ -78,7 +78,8 @@ fi
 
 echo "Using nginx config:"
 find . -name "*.conf"
-
+sed -i 's/www-data/nobody/g' /etc/nginx/nginx.conf
+cat /etc/nginx/nginx.conf
 
 cd $ORG_PATH
 
