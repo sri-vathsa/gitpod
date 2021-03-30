@@ -96,7 +96,7 @@ type testTarget struct {
 
 func (tt *testTarget) Close() {
 	tt.listener.Close()
-	tt.server.Shutdown(context.Background())
+	_ = tt.server.Shutdown(context.Background())
 }
 
 // startTestTarget starts a new HTTP server that serves as some test target during the unit tests
@@ -134,7 +134,11 @@ func startTestTarget(t *testing.T, host, name string) *testTarget {
 		}
 		w.WriteHeader(http.StatusOK)
 	})}
-	go srv.Serve(l)
+	// go srv.Serve(l)
+	go func() {
+		var temp = srv.Serve(l)
+		fmt.Printf("Output of srv.Serve: %v", temp)
+	}()
 	tt.server = srv
 
 	return tt
@@ -451,7 +455,7 @@ func TestRoutes(t *testing.T) {
 				Handler: func(w http.ResponseWriter, r *http.Request, requestCount uint8) {
 					if requestCount == 0 {
 						w.WriteHeader(http.StatusServiceUnavailable)
-						io.WriteString(w, "timeout")
+						_, _ = io.WriteString(w, "timeout")
 						return
 					}
 					w.WriteHeader(http.StatusOK)
@@ -664,6 +668,7 @@ func TestRoutes(t *testing.T) {
 				Header: resp.Header,
 			}
 			if _, ok := act.Header["Date"]; ok {
+				fmt.Printf("%v", ok)
 				delete(act.Header, "Date")
 			}
 			if len(act.Header) == 0 {
