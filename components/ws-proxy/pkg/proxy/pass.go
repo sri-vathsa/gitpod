@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
+	// "strings"
 	"syscall"
 	"time"
 
@@ -115,9 +115,9 @@ func proxyPass(config *RouteHandlerConfig, resolver targetResolver, opts ...prox
 	}
 }
 
-func isWebsocketRequest(req *http.Request) bool {
-	return strings.ToLower(req.Header.Get("Connection")) == "upgrade" && strings.ToLower(req.Header.Get("Upgrade")) == "websocket"
-}
+// func isWebsocketRequest(req *http.Request) bool {
+// return strings.ToLower(req.Header.Get("Connection")) == "upgrade" && strings.ToLower(req.Header.Get("Upgrade")) == "websocket"
+// }
 
 func connectErrorToCause(err error) string {
 	if err == nil {
