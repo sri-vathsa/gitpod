@@ -165,11 +165,11 @@ func withHTTPErrorHandler(h http.Handler) proxyPassOpt {
 	}
 }
 
-func withErrorHandler(h errorHandler) proxyPassOpt {
-	return func(cfg *proxyPassConfig) {
-		cfg.ErrorHandler = h
-	}
-}
+// func withErrorHandler(h errorHandler) proxyPassOpt {
+// 	return func(cfg *proxyPassConfig) {
+// 		cfg.ErrorHandler = h
+// 	}
+// }
 
 func createDefaultTransport(config *TransportConfig) *http.Transport {
 	// TODO equivalent of client_max_body_size 2048m; necessary ???
