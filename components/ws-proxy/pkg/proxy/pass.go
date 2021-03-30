@@ -146,16 +146,16 @@ func connectErrorToCause(err error) string {
 }
 
 // withOnProxyErrorRedirectToWorkspaceStartHandler is an error handler that redirects to gitpod.io/start/#<wsid>
-func withOnProxyErrorRedirectToWorkspaceStartHandler(config *Config) proxyPassOpt {
-	return func(h *proxyPassConfig) {
-		h.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
-			// the default impl reports all errors as 502, so we'll do the same with the rest
-			ws := getWorkspaceCoords(req)
-			redirectURL := fmt.Sprintf("%s://%s/start/#%s", config.GitpodInstallation.Scheme, config.GitpodInstallation.HostName, ws.ID)
-			http.Redirect(w, req, redirectURL, 302)
-		}
-	}
-}
+// func withOnProxyErrorRedirectToWorkspaceStartHandler(config *Config) proxyPassOpt {
+// 	return func(h *proxyPassConfig) {
+// 		h.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+// 			// the default impl reports all errors as 502, so we'll do the same with the rest
+// 			ws := getWorkspaceCoords(req)
+// 			redirectURL := fmt.Sprintf("%s://%s/start/#%s", config.GitpodInstallation.Scheme, config.GitpodInstallation.HostName, ws.ID)
+// 			http.Redirect(w, req, redirectURL, 302)
+// 		}
+// 	}
+// }
 
 func withHTTPErrorHandler(h http.Handler) proxyPassOpt {
 	return func(cfg *proxyPassConfig) {
