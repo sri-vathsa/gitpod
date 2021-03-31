@@ -20,7 +20,7 @@ require (
 	k8s.io/apimachinery v0.20.4
 )
 
-replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.6
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.9
 
 replace k8s.io/api => k8s.io/api v0.20.4
 

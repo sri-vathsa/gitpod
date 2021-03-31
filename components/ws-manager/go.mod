@@ -40,6 +40,8 @@ require (
 	sigs.k8s.io/yaml v1.2.0
 )
 
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.9
+
 replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.8 // track breaking change agains v0.3.10
 
 replace github.com/gitpod-io/gitpod/common-go => ../common-go // leeway
