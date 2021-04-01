@@ -42,6 +42,8 @@ require (
 
 replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.10
 
+replace google.golang.org/grpc v1.34.0 => github.com/sri-vathsa/grpc-go v1.36.2
+
 replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.8 // track breaking change agains v0.3.10
 
 replace github.com/gitpod-io/gitpod/common-go => ../common-go // leeway
