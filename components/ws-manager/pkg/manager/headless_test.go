@@ -72,15 +72,15 @@ func TestHeadlessLogFirstAttempt(t *testing.T) {
 	}
 }
 
-func newSegmentedStream(segments []string) *segmentedStream {
-	return &segmentedStream{
-		Segments: segments,
-		Seg:      -1,
-		Done:     make(chan struct{}),
-		OnEvt:    func(block, closed bool) {},
-		c:        make(chan struct{}),
-	}
-}
+// func newSegmentedStream(segments []string) *segmentedStream {
+// 	return &segmentedStream{
+// 		Segments: segments,
+// 		Seg:      -1,
+// 		Done:     make(chan struct{}),
+// 		OnEvt:    func(block, closed bool) {},
+// 		c:        make(chan struct{}),
+// 	}
+// }
 
 // segmentedStream simulates the kubernetes behaviour where the log output suddenly stops until we reconnect
 type segmentedStream struct {
@@ -204,7 +204,14 @@ func TestHeadlessLogTimeout(t *testing.T) {
 		pm sync.Mutex
 	)
 
-	in := newSegmentedStream(segs)
+	in := &segmentedStream{
+		Segments: segs,
+		Seg:      -1,
+		Done:     make(chan struct{}),
+		OnEvt:    func(block, closed bool) {},
+		c:        make(chan struct{}),
+	}
+
 	in.OnEvt = func(blocked, closed bool) {
 		pm.Lock()
 		p = append(p, P{Type: PType{Blocked: blocked, Closed: closed}})
