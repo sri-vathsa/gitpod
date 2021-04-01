@@ -54,7 +54,7 @@ require (
 	k8s.io/client-go v0.0.0
 )
 
-replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.9
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.10
 
 replace github.com/gitpod-io/gitpod/common-go => ../common-go // leeway
 
