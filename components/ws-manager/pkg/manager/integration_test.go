@@ -402,14 +402,20 @@ func (test *SingleWorkspaceIntegrationTest) Run(t *testing.T) {
 	if err != nil {
 		t.Errorf("cannot start test workspace: %q", err)
 	}
-	defer manager.Clientset.Delete(ctx,
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("ws-%s", instanceID),
-				Namespace: manager.Config.Namespace,
+
+	defer func() {
+		err := manager.Clientset.Delete(ctx,
+			&corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("ws-%s", instanceID),
+					Namespace: manager.Config.Namespace,
+				},
 			},
-		},
-		&client.DeleteOptions{GracePeriodSeconds: utilpointer.Int64Ptr(30)})
+			&client.DeleteOptions{GracePeriodSeconds: utilpointer.Int64Ptr(30)})
+		if err != nil {
+			fmt.Printf("Error in stopping container: %v", err)
+		}
+	}()
 
 	test.PostStart(t, monitor, instanceID, updates)
 }
