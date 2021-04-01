@@ -12,6 +12,6 @@ func BenchmarkRenderWorkspacePortURL(b *testing.B) {
 	b.ReportAllocs()
 
 	for n := 0; n < b.N; n++ {
-		renderWorkspaceURL("{{.Port}}-{{.Prefix}}.{{.Host}}", "foo", "bar", "gitpod.io")
+		_, _ = renderWorkspaceURL("{{.Port}}-{{.Prefix}}.{{.Host}}", "foo", "bar", "gitpod.io")
 	}
 }

@@ -39,10 +39,10 @@ type metrics struct {
 	phaseState map[string]api.WorkspacePhase
 }
 
-type wsstate struct {
-	Phase api.WorkspacePhase
-	Type  api.WorkspaceType
-}
+// type wsstate struct {
+// 	Phase api.WorkspacePhase
+// 	Type  api.WorkspaceType
+// }
 
 func newMetrics(m *Manager) *metrics {
 	return &metrics{
@@ -234,7 +234,7 @@ type workspaceActivityVec struct {
 	name    string
 	manager *Manager
 
-	mu sync.Mutex
+	// mu sync.Mutex
 }
 
 func newWorkspaceActivityVec(m *Manager) *workspaceActivityVec {
@@ -272,7 +272,7 @@ func (vec *workspaceActivityVec) Collect(ch chan<- prometheus.Metric) {
 	activeGauge.Set(float64(active))
 	notActiveGauge.Set(float64(notActive))
 	vec.GaugeVec.Collect(ch)
-	return
+	// return
 }
 
 func (vec *workspaceActivityVec) getWorkspaceActivityCounts() (active, notActive int, err error) {
@@ -309,7 +309,7 @@ type timeoutSettingsVec struct {
 	manager *Manager
 	desc    *prometheus.Desc
 
-	mu sync.Mutex
+	// mu sync.Mutex
 }
 
 func newTimeoutSettingsVec(m *Manager) *timeoutSettingsVec {
@@ -366,11 +366,11 @@ func (vec *timeoutSettingsVec) Collect(ch chan<- prometheus.Metric) {
 }
 
 // subscriberQueueLevelVec provides a gauge of the current subscriber queue fill levels.
-type subscriberQueueLevelVec struct {
-	name    string
-	manager *Manager
-	desc    *prometheus.Desc
-}
+// type subscriberQueueLevelVec struct {
+// 	name    string
+// 	manager *Manager
+// 	desc    *prometheus.Desc
+// }
 
 func newSubscriberQueueLevelVec(m *Manager) *timeoutSettingsVec {
 	name := prometheus.BuildFQName(metricsNamespace, metricsWorkspaceSubsystem, "subscriber_queue_level")
@@ -388,23 +388,23 @@ func newSubscriberQueueLevelVec(m *Manager) *timeoutSettingsVec {
 }
 
 // Describe implements Collector. It will send exactly one Desc to the provided channel.
-func (vec *subscriberQueueLevelVec) Describe(ch chan<- *prometheus.Desc) {
-	ch <- vec.desc
-}
+// func (vec *subscriberQueueLevelVec) Describe(ch chan<- *prometheus.Desc) {
+// 	ch <- vec.desc
+// }
 
 // Collect implements Collector.
-func (vec *subscriberQueueLevelVec) Collect(ch chan<- prometheus.Metric) {
-	vec.manager.subscriberLock.RLock()
-	defer vec.manager.subscriberLock.RUnlock()
+// func (vec *subscriberQueueLevelVec) Collect(ch chan<- prometheus.Metric) {
+// 	vec.manager.subscriberLock.RLock()
+// 	defer vec.manager.subscriberLock.RUnlock()
 
-	for key, queue := range vec.manager.subscribers {
-		// metrics cannot be re-used, we have to create them every single time
-		metric, err := prometheus.NewConstMetric(vec.desc, prometheus.GaugeValue, float64(len(queue)), key)
-		if err != nil {
-			log.WithError(err).Warnf("cannot create workspace metric - %s will be inaccurate", vec.name)
-			continue
-		}
+// 	for key, queue := range vec.manager.subscribers {
+// 		// metrics cannot be re-used, we have to create them every single time
+// 		metric, err := prometheus.NewConstMetric(vec.desc, prometheus.GaugeValue, float64(len(queue)), key)
+// 		if err != nil {
+// 			log.WithError(err).Warnf("cannot create workspace metric - %s will be inaccurate", vec.name)
+// 			continue
+// 		}
 
-		ch <- metric
-	}
-}
+// 		ch <- metric
+// 	}
+// }

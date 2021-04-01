@@ -81,7 +81,7 @@ func TestControlPort(t *testing.T) {
 				return nil
 			}
 
-			manager.Clientset.Create(context.Background(), pod)
+			_ = manager.Clientset.Create(context.Background(), pod)
 			if fixture.PortsService != nil {
 				err := manager.Clientset.Create(context.Background(), fixture.PortsService)
 				if err != nil {
@@ -276,7 +276,7 @@ func TestFindWorkspacePod(t *testing.T) {
 			}
 
 			for _, obj := range objs {
-				manager.Clientset.Create(context.Background(), obj)
+				_ = manager.Clientset.Create(context.Background(), obj)
 			}
 
 			p, err := manager.findWorkspacePod(context.Background(), test.WorkspaceID)

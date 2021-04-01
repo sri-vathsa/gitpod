@@ -7,7 +7,7 @@ package manager
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
+	// "fmt"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/opentracing/opentracing-go"
@@ -34,7 +34,7 @@ func (m *Manager) GetImageSpec(ctx context.Context, req *regapi.GetImageSpecRequ
 	)
 	if ok {
 		spanCtx := tracing.FromTraceID(traceID)
-		span = opentracing.StartSpan(fmt.Sprintf("GetImageSpec"), opentracing.FollowsFrom(spanCtx))
+		span = opentracing.StartSpan("GetImageSpec", opentracing.FollowsFrom(spanCtx))
 		ctx = opentracing.ContextWithSpan(ctx, span)
 	} else {
 		span, ctx = tracing.FromContext(ctx, "GetImageSpec")

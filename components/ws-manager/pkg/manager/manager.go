@@ -85,14 +85,14 @@ const (
 	// workspaceDir is the path within all containers where workspaceVolume is mounted to
 	workspaceDir = "/workspace"
 	// theiaDir is the path within all containers where theiaVolume is mounted to
-	theiaDir = "/theia"
+	// theiaDir = "/theia"
 	// MarkerLabel is the label by which we identify pods which belong to ws-manager
 	markerLabel = "gpwsman"
 	// headlessLabel marks a workspace as headless
 	headlessLabel = "headless"
 
 	// theiaVersionLabelFmt is the format to produce the label a node has if Theia is available on it in a particular version
-	theiaVersionLabelFmt = "gitpod.io/theia.%s"
+	// theiaVersionLabelFmt = "gitpod.io/theia.%s"
 )
 
 const (
@@ -1131,7 +1131,7 @@ func isKubernetesObjNotFoundError(err error) bool {
 // connectToWorkspaceDaemon establishes a connection to the ws-daemon daemon running on the node of the pod/workspace.
 func (m *Manager) connectToWorkspaceDaemon(ctx context.Context, wso workspaceObjects) (wsdaemon.WorkspaceContentServiceClient, error) {
 	//nolint:ineffassign
-	span, ctx := tracing.FromContext(ctx, "connectToWorkspaceDaemon")
+	span, _ := tracing.FromContext(ctx, "connectToWorkspaceDaemon")
 	tracing.ApplyOWI(span, wso.GetOWI())
 	defer tracing.FinishSpan(span, nil)
 
