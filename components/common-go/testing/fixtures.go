@@ -60,7 +60,7 @@ func (ft *FixtureTest) Run() {
 				return
 			}
 			if msg, ok := fixture.(proto.Message); ok {
-				jsonpb.Unmarshal(bytes.NewReader(fd), msg)
+				_ = jsonpb.Unmarshal(bytes.NewReader(fd), msg)
 			} else {
 				err = json.Unmarshal(fd, fixture)
 				if err != nil {
@@ -114,7 +114,7 @@ func (ft *FixtureTest) Run() {
 					return
 				}
 
-				json.Unmarshal(expected, expectedResult)
+				_ = json.Unmarshal(expected, expectedResult)
 				diff := deep.Equal(expectedResult, result)
 
 				t.Errorf("fixture %s: %v", fn, diff)

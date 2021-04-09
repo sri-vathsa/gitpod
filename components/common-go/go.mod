@@ -6,7 +6,7 @@ require (
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/go-test/deep v1.0.5
 	github.com/golang/protobuf v1.4.3
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.5
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/prometheus/client_golang v1.1.0
@@ -21,6 +21,8 @@ require (
 	k8s.io/apimachinery v0.20.1
 	k8s.io/client-go v0.0.0
 )
+
+replace github.com/golang/protobuf => github.com/sri-vathsa/protobuf v1.4.10
 
 replace k8s.io/api => k8s.io/api v0.20.1
 

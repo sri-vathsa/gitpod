@@ -157,7 +157,7 @@ func newGitInitializer(ctx context.Context, loc string, req *csapi.GitInitialize
 			user, pwd, err = downloadOTS(ctx, req.Config.AuthOts)
 			if err != nil {
 				log.WithField("location", loc).WithError(err).Error("cannot download Git auth OTS")
-				return "", "", status.Error(codes.InvalidArgument, fmt.Sprintf("cannot get OTS"))
+				return "", "", status.Error(codes.InvalidArgument, "cannot get OTS")
 			}
 		case csapi.GitAuthMethod_NO_AUTH:
 		default:
@@ -200,7 +200,7 @@ func downloadOTS(ctx context.Context, url string) (user, pwd string, err error) 
 		if err != nil {
 			return "", "", err
 		}
-		opentracing.GlobalTracer().Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
+		_ = opentracing.GlobalTracer().Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {

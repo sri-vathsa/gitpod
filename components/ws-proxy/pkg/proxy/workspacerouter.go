@@ -134,11 +134,12 @@ func matchBlobserveHostHeader(wsHostSuffix string, headerProvider hostHeaderProv
 		}
 
 		matches := r.FindStringSubmatch(hostname)
-		if len(matches) < 1 {
-			return false
-		}
+		return len(matches) >= 1
+		// if len(matches) < 1 {
+		// 	return false
+		// }
 
-		return true
+		// return true
 	}
 }
 

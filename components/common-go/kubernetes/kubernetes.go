@@ -20,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/util/flowcontrol"
+	// "k8s.io/client-go/util/flowcontrol"
 )
 
 const (
@@ -72,7 +72,7 @@ func GetOWIFromObject(pod *metav1.ObjectMeta) logrus.Fields {
 type UnlimitedRateLimiter struct {
 }
 
-var typecheck flowcontrol.RateLimiter = &UnlimitedRateLimiter{}
+// var typecheck flowcontrol.RateLimiter = &UnlimitedRateLimiter{}
 
 // TryAccept returns true if a token is taken immediately. Otherwise,
 // it returns false.
@@ -82,12 +82,12 @@ func (u *UnlimitedRateLimiter) TryAccept() bool {
 
 // Accept returns once a token becomes available.
 func (u *UnlimitedRateLimiter) Accept() {
-	return
+	// return
 }
 
 // Stop stops the rate limiter, subsequent calls to CanAccept will return false
 func (u *UnlimitedRateLimiter) Stop() {
-	return
+	// return
 }
 
 // QPS returns QPS of this rate limiter

@@ -672,6 +672,6 @@ func servePortNotFoundPage(config *Config) (http.Handler, error) {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write(page)
+		_, _ = w.Write(page)
 	}), nil
 }
