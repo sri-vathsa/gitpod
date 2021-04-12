@@ -368,7 +368,13 @@ func (test *SingleWorkspaceIntegrationTest) Run(t *testing.T) {
 	if err != nil {
 		t.Errorf("cannot start test workspace: %q", err)
 	}
-	defer manager.Clientset.CoreV1().Pods(manager.Config.Namespace).Delete(ctx, fmt.Sprintf("ws-%s", instanceID), *metav1.NewDeleteOptions(30))
+
+	defer func() {
+		err := manager.Clientset.CoreV1().Pods(manager.Config.Namespace).Delete(ctx, fmt.Sprintf("ws-%s", instanceID), *metav1.NewDeleteOptions(30))
+		if err != nil {
+			fmt.Printf("Error in creating pods: %v", err)
+		}
+	}()
 
 	test.PostStart(t, monitor, instanceID, updates)
 }
