@@ -93,6 +93,7 @@ func TestIntegrationWorkspaceDisposal(t *testing.T) {
 					s.EXPECT().DisposeWorkspace(gomock.Any(), matches(func(a interface{}) bool {
 						_, ok := a.(*wsdaemon.DisposeWorkspaceRequest)
 						if !ok {
+							t.Log("It's not ok")
 							return false
 						}
 						return true //req.Backup == false

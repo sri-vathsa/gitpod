@@ -1132,7 +1132,7 @@ func isKubernetesObjNotFoundError(err error) bool {
 // connectToWorkspaceDaemon establishes a connection to the ws-daemon daemon running on the node of the pod/workspace.
 func (m *Manager) connectToWorkspaceDaemon(ctx context.Context, wso workspaceObjects) (wsdaemon.WorkspaceContentServiceClient, error) {
 	//nolint:ineffassign
-	span, ctx := tracing.FromContext(ctx, "connectToWorkspaceDaemon")
+	span, _ := tracing.FromContext(ctx, "connectToWorkspaceDaemon")
 	tracing.ApplyOWI(span, wso.GetOWI())
 	defer tracing.FinishSpan(span, nil)
 

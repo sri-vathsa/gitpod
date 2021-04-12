@@ -37,10 +37,10 @@ type metrics struct {
 	phaseState map[string]api.WorkspacePhase
 }
 
-type wsstate struct {
-	Phase api.WorkspacePhase
-	Type  api.WorkspaceType
-}
+// type wsstate struct {
+// 	Phase api.WorkspacePhase
+// 	Type  api.WorkspaceType
+// }
 
 func newMetrics(m *Manager) *metrics {
 	return &metrics{
@@ -230,7 +230,7 @@ type workspaceActivityVec struct {
 	name    string
 	manager *Manager
 
-	mu sync.Mutex
+	// mu sync.Mutex
 }
 
 func newWorkspaceActivityVec(m *Manager) *workspaceActivityVec {
@@ -268,7 +268,7 @@ func (vec *workspaceActivityVec) Collect(ch chan<- prometheus.Metric) {
 	activeGauge.Set(float64(active))
 	notActiveGauge.Set(float64(notActive))
 	vec.GaugeVec.Collect(ch)
-	return
+	// return
 }
 
 func (vec *workspaceActivityVec) getWorkspaceActivityCounts() (active, notActive int, err error) {
@@ -305,7 +305,7 @@ type timeoutSettingsVec struct {
 	manager *Manager
 	desc    *prometheus.Desc
 
-	mu sync.Mutex
+	// mu sync.Mutex
 }
 
 func newTimeoutSettingsVec(m *Manager) *timeoutSettingsVec {

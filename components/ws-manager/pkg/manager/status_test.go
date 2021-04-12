@@ -162,8 +162,8 @@ func BenchmarkGetStatus(b *testing.B) {
 			for n := 0; n < b.N; n++ {
 				r, err := manager.getWorkspaceStatus(wso)
 				if err != nil {
-					b.Fatal(err)
 					r.Auth = nil
+					b.Fatal(err)
 				}
 			}
 		})
