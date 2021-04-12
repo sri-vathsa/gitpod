@@ -5,7 +5,7 @@
 FROM alpine:3.7
 
 RUN apk add bash
-RUN wget https://storage.googleapis.com/kubernetes-release/release/v1.11.0/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl && \
+RUN wget https://storage.googleapis.com/kubernetes-release/release/v1.11.0/bin/linux/arm64/kubectl -O /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl
 
 WORKDIR /app
