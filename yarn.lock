@@ -10464,13 +10464,6 @@ growl@1.10.5:
   version "1.10.5"
   resolved "https://registry.yarnpkg.com/growl/-/growl-1.10.5.tgz#f2735dc2283674fa67478b10181059355c369e5e"
 
-grpc-tools@^1.7.2, grpc-tools@^1.7.3:
-  version "1.9.1"
-  resolved "https://registry.yarnpkg.com/grpc-tools/-/grpc-tools-1.9.1.tgz#e43be478860a21781ce9a535647985cd365b1e06"
-  integrity sha512-t2JFMPLjxcgwVSJwFEauFaoEiO56kijxSwehQDgZNR/hrStJCH0pHGsjqJNuCOvmI9Z31pYOfgj4zeInTQWh5A==
-  dependencies:
-    node-pre-gyp "^0.15.0"
-
 grpc@^1.16.0, grpc@^1.21.1:
   version "1.24.3"
   resolved "https://registry.yarnpkg.com/grpc/-/grpc-1.24.3.tgz#92efe28dfc1250dca179b8133e40b4f2341473d9"
