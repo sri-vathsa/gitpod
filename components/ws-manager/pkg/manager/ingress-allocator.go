@@ -89,7 +89,7 @@ type allocatedPort struct {
 	// The workspace local port
 	WorkspacePort int `json:"workspacePort"`
 	// The port visible to the user (in the browser, e.g.)
-	IngressPort int `json:"ingressPort,omitmpty"`
+	IngressPort int `json:"ingressPort"`
 }
 
 // NewIngressPortAllocator returns either:
