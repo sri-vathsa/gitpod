@@ -1,8 +1,7 @@
 # Copyright (c) 2020 Gitpod GmbH. All rights reserved.
 # Licensed under the MIT License. See License-MIT.txt in the project root for license information.
 
-version: 0.6.0-beta5
-
+version: arm-test
 hostname: localhost
 # ingressModes determines how Gitpod makes workspaces and their ports available. Possible values are:
 #           hosts: where workspaces and their ports are made available on subdomains of the hostname, e.g.
@@ -21,8 +20,7 @@ hostname: localhost
 ingressMode: hosts
 certificatesSecret:
   secretName: https-certificates
-
-imagePrefix: gcr.io/gitpod-io/self-hosted/
+imagePrefix: 082830052325.dkr.ecr.us-east-1.amazonaws.com/
 installation:
   stage: production
   tenant: gitpod
