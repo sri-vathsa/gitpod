@@ -197,7 +197,15 @@ func newTerm(pty *os.File, cmd *exec.Cmd, options TermOptions) (*Term, error) {
 
 		waitDone: make(chan struct{}),
 	}
-	go io.Copy(res.Stdout, pty)
+
+	go func() {
+		_, err := io.Copy(res.Stdout, pty)
+		if err != nil {
+			log.Printf("Error in io copy: %v", err)
+		}
+	}()
+
+	// go io.Copy(res.Stdout, pty)
 	return res, nil
 }
 

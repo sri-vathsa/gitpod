@@ -483,7 +483,10 @@ func TestPortsUpdateState(t *testing.T) {
 			}
 			go func() {
 				defer wg.Done()
-				defer sub.Close()
+				defer func() {
+					_ = sub.Close()
+				}()
+				// defer sub.Close()
 
 				for up := range sub.Updates() {
 					updts = append(updts, up)

@@ -162,7 +162,10 @@ func (s *statusService) PortsStatus(req *api.PortsStatusRequest, srv api.StatusS
 	if err != nil {
 		return status.Error(codes.Internal, err.Error())
 	}
-	defer sub.Close()
+	// defer sub.Close()
+	defer func() {
+		_ = sub.Close()
+	}()
 
 	for {
 		select {
@@ -199,7 +202,10 @@ func (s *statusService) TasksStatus(req *api.TasksStatusRequest, srv api.StatusS
 	if sub == nil {
 		return status.Error(codes.ResourceExhausted, "too many subscriptions")
 	}
-	defer sub.Close()
+	// defer sub.Close()
+	defer func() {
+		_ = sub.Close()
+	}()
 
 	for {
 		select {

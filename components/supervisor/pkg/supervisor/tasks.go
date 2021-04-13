@@ -129,7 +129,7 @@ func (tm *tasksManager) updateState(doUpdate func() (changed bool)) {
 		case sub.updates <- updates:
 		case <-time.After(5 * time.Second):
 			log.Error("tasks subscription droped out")
-			sub.Close()
+			_ = sub.Close()
 		}
 	}
 }

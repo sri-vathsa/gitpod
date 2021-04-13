@@ -552,15 +552,33 @@ func startAPIEndpoint(ctx context.Context, cfg *Config, wg *sync.WaitGroup, serv
 			}
 		}
 	}
-	go grpcServer.Serve(grpcMux)
+	go func() {
+		err := grpcServer.Serve(grpcMux)
+		if err != nil {
+			log.Printf("Error in grpcServer.Serve: %v", err)
+		}
+	}()
+	// go grpcServer.Serve(grpcMux)
 
 	httpMux := m.Match(cmux.HTTP1Fast())
 	routes := http.NewServeMux()
 	routes.Handle("/_supervisor/v1/", http.StripPrefix("/_supervisor", restMux))
 	routes.Handle("/_supervisor/frontend", http.FileServer(http.Dir(cfg.FrontendLocation)))
-	go http.Serve(httpMux, routes)
+	go func() {
+		err := http.Serve(httpMux, routes)
+		if err != nil {
+			log.Printf("Error in http.Serve: %v", err)
+		}
+	}()
+	// go http.Serve(httpMux, routes)
 
-	go m.Serve()
+	go func() {
+		err := m.Serve()
+		if err != nil {
+			log.Printf("Error in m.Serve: %v", err)
+		}
+	}()
+	// go m.Serve()
 
 	<-ctx.Done()
 	log.Info("shutting down API endpoint")
