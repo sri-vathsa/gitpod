@@ -5,6 +5,7 @@ packages:
       - "*.proto"
     config:
       commands:
-        - ["git", "clone", "https://github.com/grpc-ecosystem/grpc-gateway"]
-        - ["mv", "grpc-gateway/third_party", "third_party"]
-        - ["rm", "-r", "grpc-gateway"]
+        - ["wget", "https://github.com/grpc-ecosystem/grpc-gateway/archive/refs/tags/v2.2.0.zip"]
+        - ["unzip", "v2.2.0.zip"]
+        - ["mv", "grpc-gateway-2.2.0/third_party", "third_party"]
+        - ["rm", "-r", "grpc-gateway-2.2.0"]
