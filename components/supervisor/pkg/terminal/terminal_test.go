@@ -56,10 +56,10 @@ func TestTerminals(t *testing.T) {
 				time.Sleep(500 * time.Millisecond)
 
 				for _, stdin := range test.Stdin {
-					terminal.PTY.Write([]byte(stdin + "\r\n"))
+					_, _ = terminal.PTY.Write([]byte(stdin + "\r\n"))
 				}
 			}()
-			io.Copy(stdoutOutput, terminal.Stdout.Listen())
+			_, _ = io.Copy(stdoutOutput, terminal.Stdout.Listen())
 
 			expectation := strings.Split(test.Expectation(terminal), "\r\n")
 			actual := strings.Split(string(stdoutOutput.Bytes()), "\r\n")

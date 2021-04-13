@@ -54,9 +54,9 @@ func AddAPIEndpointOpts(opts ...grpc.ServerOption) {
 	apiEndpointOpts = append(apiEndpointOpts, opts...)
 }
 
-const (
-	maxIDEPause = 20 * time.Second
-)
+// const (
+// 	maxIDEPause = 20 * time.Second
+// )
 
 type runOptions struct {
 	Args        []string
@@ -82,9 +82,9 @@ func InNamespace() RunOption {
 
 // The sum of those timeBudget* times has to fit within the terminationGracePeriod of the workspace pod.
 const (
-	timeBudgetIDEShutdown      = 5 * time.Second
-	timeBudgetTeardownCommands = 15 * time.Second
-	timeBudgetDaemonTeardown   = 10 * time.Second
+	timeBudgetIDEShutdown = 5 * time.Second
+	// timeBudgetTeardownCommands = 15 * time.Second
+	timeBudgetDaemonTeardown = 10 * time.Second
 )
 
 const (
@@ -401,7 +401,7 @@ supervisorLoop:
 		case <-ctx.Done():
 			// we've been asked to shut down
 			s = statusShouldShutdown
-			cmd.Process.Signal(os.Interrupt)
+			_ = cmd.Process.Signal(os.Interrupt)
 			break supervisorLoop
 		}
 	}
@@ -412,7 +412,7 @@ supervisorLoop:
 		return
 	case <-time.After(timeBudgetIDEShutdown):
 		log.Error("IDE did not stop in time - sending SIGKILL")
-		cmd.Process.Signal(syscall.SIGKILL)
+		_ = cmd.Process.Signal(syscall.SIGKILL)
 	}
 }
 

@@ -257,7 +257,7 @@ func (tm *tasksManager) Run(ctx context.Context, wg *sync.WaitGroup) {
 		tm.watch(t, term)
 
 		if t.command != "" {
-			term.PTY.Write([]byte(t.command + "\n"))
+			_, _ = term.PTY.Write([]byte(t.command + "\n"))
 		}
 	}
 
@@ -395,11 +395,11 @@ func (tm *tasksManager) watch(task *task, terminal *terminal.Term) {
 					duration += " of watching your code build.\n"
 				}
 				data := string(buf[:n])
-				fileWriter.Write(buf[:n])
+				_, _ = fileWriter.Write(buf[:n])
 				tm.reporter.write(data, task, terminal)
 
 				endMessage := "\n🍌 This task ran as part of a workspace prebuild.\n" + duration + "\n"
-				fileWriter.WriteString(endMessage)
+				_, _ = fileWriter.WriteString(endMessage)
 				break
 			}
 			if err != nil {
@@ -407,7 +407,7 @@ func (tm *tasksManager) watch(task *task, terminal *terminal.Term) {
 				return
 			}
 			data := string(buf[:n])
-			fileWriter.Write(buf[:n])
+			_, _ = fileWriter.Write(buf[:n])
 			tm.reporter.write(data, task, terminal)
 		}
 	}()

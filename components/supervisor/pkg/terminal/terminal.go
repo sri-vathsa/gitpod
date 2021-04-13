@@ -71,7 +71,7 @@ func (m *Mux) Start(cmd *exec.Cmd, options TermOptions) (alias string, err error
 	go func() {
 		term.waitErr = cmd.Wait()
 		close(term.waitDone)
-		m.CloseTerminal(alias, 0*time.Second)
+		_ = m.CloseTerminal(alias, 0*time.Second)
 	}()
 
 	return alias, nil
@@ -222,9 +222,10 @@ type Term struct {
 
 // Wait waits for the terminal to exit and returns the resulted process state
 func (term *Term) Wait() (*os.ProcessState, error) {
-	select {
-	case <-term.waitDone:
-	}
+	// select {
+	// case <-term.waitDone:
+	// }
+	<-term.waitDone
 	return term.Command.ProcessState, term.waitErr
 }
 
@@ -303,7 +304,7 @@ func (mw *multiWriter) Listen() io.ReadCloser {
 
 	recording := mw.recorder.Bytes()
 	go func() {
-		w.Write(recording)
+		_, _ = w.Write(recording)
 
 		// copy bytes from channel to writer.
 		// Note: we close the writer independently of the write operation s.t. we don't
@@ -315,7 +316,7 @@ func (mw *multiWriter) Listen() io.ReadCloser {
 				err = io.ErrShortWrite
 			}
 			if err != nil {
-				res.CloseWithError(err)
+				_ = res.CloseWithError(err)
 			}
 		}
 	}()
@@ -324,7 +325,7 @@ func (mw *multiWriter) Listen() io.ReadCloser {
 		<-closeChan
 		if res.closeErr != nil {
 			log.WithError(res.closeErr).Error("terminal listener droped out")
-			w.CloseWithError(res.closeErr)
+			_ = w.CloseWithError(res.closeErr)
 		} else {
 			w.Close()
 		}
@@ -344,7 +345,7 @@ func (mw *multiWriter) Write(p []byte) (n int, err error) {
 	mw.mu.Lock()
 	defer mw.mu.Unlock()
 
-	mw.recorder.Write(p)
+	_, _ = mw.recorder.Write(p)
 
 	for lstr := range mw.listener {
 		if lstr.closed {
@@ -354,13 +355,13 @@ func (mw *multiWriter) Write(p []byte) (n int, err error) {
 		select {
 		case lstr.cchan <- p:
 		case <-time.After(mw.timeout):
-			lstr.CloseWithError(ErrReadTimeout)
+			_ = lstr.CloseWithError(ErrReadTimeout)
 		}
 
 		select {
 		case <-lstr.done:
 		case <-time.After(mw.timeout):
-			lstr.CloseWithError(ErrReadTimeout)
+			_ = lstr.CloseWithError(ErrReadTimeout)
 		}
 	}
 	return len(p), nil
@@ -389,9 +390,9 @@ func (mw *multiWriter) ListenerCount() int {
 	return len(mw.listener)
 }
 
-type opCloser struct {
-	io.Reader
-	Op func() error
-}
+// type opCloser struct {
+// 	io.Reader
+// 	Op func() error
+// }
 
-func (c *opCloser) Close() error { return c.Op() }
+// func (c *opCloser) Close() error { return c.Op() }
