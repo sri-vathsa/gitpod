@@ -7,7 +7,7 @@ require (
 	github.com/docker/cli v0.0.0-20200113155311-34d848623701
 	github.com/gitpod-io/gitpod/common-go v0.0.0-00010101000000-000000000000
 	github.com/gitpod-io/gitpod/registry-facade v0.0.0-00010101000000-000000000000
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.5
 	github.com/gorilla/mux v1.7.3
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/prometheus/client_golang v1.1.0
