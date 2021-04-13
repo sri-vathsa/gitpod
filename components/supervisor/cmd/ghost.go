@@ -23,9 +23,10 @@ var ghostCmd = &cobra.Command{
 
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-		select {
-		case <-sigChan:
-		}
+		// select {
+		// case <-sigChan:
+		// }
+		<-sigChan
 	},
 }
 

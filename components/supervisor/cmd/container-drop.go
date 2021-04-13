@@ -18,7 +18,7 @@ var dropCmd = &cobra.Command{
 	Hidden: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		out := dropwriter.Writer(os.Stdout, dropwriter.NewBucket(128, 64))
-		io.Copy(out, os.Stdin)
+		_, _ = io.Copy(out, os.Stdin)
 	},
 }
 

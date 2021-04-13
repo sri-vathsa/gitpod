@@ -117,7 +117,7 @@ func (pm *Manager) Run() {
 		pm.mu.Unlock()
 
 		for _, s := range subs {
-			s.Close()
+			_ = s.Close()
 		}
 	}()
 	defer cancel()
@@ -233,7 +233,7 @@ func (pm *Manager) updateState(exposed []ExposedPort, served []ServedPort, confi
 		case sub.updates <- status:
 		case <-time.After(5 * time.Second):
 			log.Error("ports subscription droped out")
-			sub.Close()
+			_ = sub.Close()
 		}
 	}
 }

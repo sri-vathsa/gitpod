@@ -77,10 +77,10 @@ func (service *ConfigService) Observe(ctx context.Context) (<-chan *GitpodConfig
 		service.listeners[listener] = struct{}{}
 		service.mu.Unlock()
 
-		select {
-		case <-ctx.Done():
-		}
-
+		// select {
+		// case <-ctx.Done():
+		// }
+		<-ctx.Done()
 		service.mu.Lock()
 		delete(service.listeners, listener)
 		if len(service.listeners) == 0 && service.stop != nil {
@@ -197,7 +197,7 @@ func (service *ConfigService) poll(ctx context.Context) {
 		}
 
 		if _, err := os.Stat(service.location); !os.IsNotExist(err) {
-			service.watch(ctx)
+			_ = service.watch(ctx)
 			return
 		}
 	}

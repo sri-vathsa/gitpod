@@ -67,7 +67,7 @@ func (b *Bucket) adjustTokens() {
 		b.availableTokens = b.capacity
 	}
 
-	return
+	// return
 }
 
 // TakeAvailable attempts to remove req tokens from the bucket. If there are fewer tokens available

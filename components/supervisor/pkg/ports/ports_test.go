@@ -644,14 +644,16 @@ func TestPortsConcurrentSubscribe(t *testing.T) {
 					return err
 				}
 				// status
-				select {
-				case <-sub.Updates():
-				}
+				// select {
+				// case <-sub.Updates():
+				// }
+				<-sub.Updates()
 				// update
-				select {
-				case <-sub.Updates():
-				}
-				sub.Close()
+				// select {
+				// case <-sub.Updates():
+				// }
+				<-sub.Updates()
+				_ = sub.Close()
 			}
 			return nil
 		})
