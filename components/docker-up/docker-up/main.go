@@ -111,6 +111,12 @@ func runWithinNetns() (err error) {
 	}
 	sigc := sigproxy.ForwardAllSignals(context.Background(), cmd.Process.Pid)
 	defer sigproxysignal.StopCatch(sigc)
+	// defer func() {
+	// _ = sigproxysignal.StopCatch(sigc)
+	// if err != nil {
+	// fmt.Printf("Error in sigproxysignal: %v", err)
+	// }
+	// }()
 
 	if opts.UserAccessibleSocket {
 		go func() {
@@ -192,7 +198,9 @@ func runOutsideNetns() error {
 	if err != nil {
 		return err
 	}
-	defer slirpCmd.Process.Kill()
+	defer func() {
+		_ = slirpCmd.Process.Kill()
+	}()
 
 	_, err = msgutil.MarshalToWriter(pipeW, message{Stage: 1})
 	if err != nil {

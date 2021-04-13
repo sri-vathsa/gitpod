@@ -78,7 +78,9 @@ func xmain(f *os.File) error {
 	if err != nil {
 		return xerrors.Errorf("cannot expose slirp4net port: %w", err)
 	}
-	defer closePort(socketPath, id)
+	defer func() {
+		_ = closePort(socketPath, id)
+	}()
 
 	cmd := exec.Command(realProxy,
 		"-container-ip", *containerIP,
