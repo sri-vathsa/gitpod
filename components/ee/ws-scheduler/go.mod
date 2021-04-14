@@ -9,7 +9,7 @@ require (
 	github.com/go-ozzo/ozzo-validation v3.5.0+incompatible
 	github.com/golang/mock v1.4.3
 	github.com/golang/protobuf v1.4.3
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.1.2
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
