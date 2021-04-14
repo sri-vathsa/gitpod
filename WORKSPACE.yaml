@@ -4,7 +4,7 @@ defaultArgs:
   coreYarnLockBase: ../..
   publishToNPM: true
   imageRepoBase: 082830052325.dkr.ecr.us-east-1.amazonaws.com
-  version: arm-test
+  version: amd-test
   
 defaultVariant: 
   config:

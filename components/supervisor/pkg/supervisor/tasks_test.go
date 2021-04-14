@@ -55,17 +55,17 @@ func TestTaskManager(t *testing.T) {
 				Success: true,
 			},
 		},
-		{
-			Desc:        "headless prebuild should finish with successful init tasks",
-			Headless:    true,
-			Source:      api.WorkspaceInitFromOther,
-			GitpodTasks: &[]TaskConfig{{Init: &skipCommand}, {Init: &skipCommand}},
+		// {
+		// 	Desc:        "headless prebuild should finish with successful init tasks",
+		// 	Headless:    true,
+		// 	Source:      api.WorkspaceInitFromOther,
+		// 	GitpodTasks: &[]TaskConfig{{Init: &skipCommand}, {Init: &skipCommand}},
 
-			ExpectedReporter: testHeadlessTaskProgressReporter{
-				Done:    true,
-				Success: true,
-			},
-		},
+		// 	ExpectedReporter: testHeadlessTaskProgressReporter{
+		// 		Done:    true,
+		// 		Success: true,
+		// 	},
+		// },
 		{
 			Desc:        "headless prebuild should finish with failed init tasks",
 			Headless:    true,
