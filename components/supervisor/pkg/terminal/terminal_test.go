@@ -62,7 +62,7 @@ func TestTerminals(t *testing.T) {
 			_, _ = io.Copy(stdoutOutput, terminal.Stdout.Listen())
 
 			expectation := strings.Split(test.Expectation(terminal), "\r\n")
-			actual := strings.Split(string(stdoutOutput.Bytes()), "\r\n")
+			actual := strings.Split(stdoutOutput.String(), "\r\n")
 			if diff := cmp.Diff(expectation, actual); diff != "" {
 				t.Errorf("unexpected output (-want +got):\n%s", diff)
 			}
