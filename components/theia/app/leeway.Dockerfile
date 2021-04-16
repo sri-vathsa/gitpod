@@ -18,16 +18,26 @@ RUN mkdir -p /theia/node/bin \
 
 FROM alpine:3.9 AS builder_alpine
 
-RUN apk add --no-cache bash gcc g++ make pkgconfig python libc6-compat libexecinfo-dev git patchelf findutils
+RUN apk add --no-cache bash gcc g++ make pkgconfig python libc6-compat libexecinfo-dev git findutils curl jq autoconf automake nodejs-current \
+        nodejs-npm 
+
+RUN git clone https://github.com/NixOS/patchelf.git &&  cd patchelf && ./bootstrap.sh \
+    && ./configure \
+    && make \
+    && make check \
+    && make install && cd ../ \
+    && rm -rf patchelf
 
 # install node
 COPY --from=node_installer /theia/node/ /theia/node/
 ENV PATH=$PATH:/theia/node/bin/
 
+RUN npm install -g yarn@1.15.2
+
 # install yarn by download+unpack to ensure it does NOT put anything into /theia/node/
-RUN wget https://github.com/yarnpkg/yarn/releases/download/v1.15.2/yarn-v1.15.2.tar.gz
-RUN tar zvxf yarn-v1.15.2.tar.gz
-ENV PATH=$PATH:/yarn-v1.15.2/bin/
+# RUN wget https://github.com/yarnpkg/yarn/releases/download/v1.15.2/yarn-v1.15.2.tar.gz
+# RUN tar zvxf yarn-v1.15.2.tar.gz
+# ENV PATH=$PATH:/yarn-v1.15.2/bin/
 
 COPY components-theia-app--installer /theia-installer
 WORKDIR /theia
