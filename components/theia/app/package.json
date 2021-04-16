@@ -35,6 +35,7 @@
     "@theia/userstorage": "next",
     "@theia/variable-resolver": "next",
     "@theia/workspace": "next",
+    "grpc_tools_node_protoc_ts": "^5.2.1",
     "patch-package": "^6.2.2"
   },
   "devDependencies": {
