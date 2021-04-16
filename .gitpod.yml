@@ -1,4 +1,4 @@
-image: eu.gcr.io/gitpod-core-dev/dev/dev-environment:dev.1
+image: eu.gcr.io/gitpod-core-dev/dev/dev-environment:aledbf-dev-image.2
 workspaceLocation: gitpod/gitpod-ws.theia-workspace
 checkoutLocation: gitpod
 ports:
