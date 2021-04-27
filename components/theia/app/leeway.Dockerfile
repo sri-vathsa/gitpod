@@ -5,7 +5,7 @@
 
 ################ Alpine ####################
 # copy nodejs from the official alpine-based image because of https://github.com/TypeFox/gitpod/issues/2579
-FROM node:12.14.1-alpine AS node_installer
+FROM node:12.22.1-alpine AS node_installer
 RUN mkdir -p /theia/node/bin \
     /theia/node/include/node/ \
     /theia/node/lib/node_modules/npm/ \
@@ -16,34 +16,32 @@ RUN mkdir -p /theia/node/bin \
     cp -ar /usr/local/include/node/         /theia/node/include/ && \
     cp -ar /usr/local/lib/node_modules/npm/ /theia/node/lib/node_modules/
 
-FROM alpine:3.9 AS builder_alpine
 
-RUN apk add --no-cache bash gcc g++ make pkgconfig python libc6-compat libexecinfo-dev git findutils curl jq autoconf automake nodejs-current \
-        nodejs-npm 
+FROM alpine:3.13 AS builder_alpine
 
-RUN git clone https://github.com/NixOS/patchelf.git &&  cd patchelf && ./bootstrap.sh \
-    && ./configure \
-    && make \
-    && make check \
-    && make install && cd ../ \
-    && rm -rf patchelf
+RUN apk add --no-cache bash gcc g++ make pkgconfig python3 libc6-compat libexecinfo-dev git patchelf findutils curl jq
 
 # install node
 COPY --from=node_installer /theia/node/ /theia/node/
 ENV PATH=$PATH:/theia/node/bin/
 
-RUN npm install -g yarn@1.15.2
-
 # install yarn by download+unpack to ensure it does NOT put anything into /theia/node/
-# RUN wget https://github.com/yarnpkg/yarn/releases/download/v1.15.2/yarn-v1.15.2.tar.gz
-# RUN tar zvxf yarn-v1.15.2.tar.gz
-# ENV PATH=$PATH:/yarn-v1.15.2/bin/
+RUN wget https://github.com/yarnpkg/yarn/releases/download/v1.22.10/yarn-v1.22.10.tar.gz
+RUN tar zvxf yarn-v1.22.10.tar.gz
+ENV PATH=$PATH:/yarn-v1.22.10/bin/
+
+# yq - jq for YAML files
+RUN cd /usr/bin \
+    && curl -fsSL https://github.com/mikefarah/yq/releases/download/v4.6.3/yq_linux_amd64 > yq \
+    && chmod +x yq
+ENV PATH=$PATH:/usr/bin/
 
 COPY components-theia-app--installer /theia-installer
+
 WORKDIR /theia
 RUN /theia-installer/install.sh
 
-# copy native dependencies of node
+
 COPY package-libs.sh /usr/bin/
 RUN package-libs.sh /theia/node/bin/node
 
@@ -62,6 +60,7 @@ RUN chmod -R ugo+x /ide/bin
 
 FROM scratch
 COPY --from=builder_alpine /theia/ /theia/
+
 
 # standard supervisor entrypoint used when supervisor isn't coming from this image
 WORKDIR /ide/
@@ -84,3 +83,64 @@ ENV GITPOD_APPEND_ENV_PATH /ide/bin:
 ENV GITPOD_ENV_SET_EDITOR "gp open -w"
 ENV GITPOD_ENV_SET_VISUAL "$GITPOD_ENV_SET_EDITOR"
 ENV GITPOD_ENV_SET_GIT_EDITOR "$GITPOD_ENV_SET_EDITOR"
+
+
+
+
+
+# # install node
+# COPY --from=node_installer /theia/node/ /theia/node/
+# ENV PATH=$PATH:/theia/node/bin/
+
+# RUN npm install -g yarn@1.15.2
+
+# # install yarn by download+unpack to ensure it does NOT put anything into /theia/node/
+# RUN wget https://github.com/yarnpkg/yarn/releases/download/v1.15.2/yarn-v1.15.2.tar.gz
+# RUN tar zvxf yarn-v1.15.2.tar.gz
+# ENV PATH=$PATH:/yarn-v1.15.2/bin/
+
+# COPY components-theia-app--installer /theia-installer
+# WORKDIR /theia
+# RUN /theia-installer/install.sh
+
+# # copy native dependencies of node
+# COPY package-libs.sh /usr/bin/
+# RUN package-libs.sh /theia/node/bin/node
+
+# # patching plugin ext host process to fix css extension compatibility, see https://github.com/gitpod-io/gitpod/pull/2483
+# RUN cp -r /theia/node_modules/@gitpod/gitpod-ide/patches /theia/patches 
+# RUN yarn patch-package
+
+# # copy native dependencies of node modules
+# RUN find /theia/node_modules/ -iname *.node -exec package-libs.sh {} \;
+
+# RUN cp /theia/node/bin/node /theia/node/bin/gitpod-node && rm /theia/node/bin/node
+
+# # cli config
+# COPY bin /ide/bin
+# RUN chmod -R ugo+x /ide/bin
+
+# FROM scratch
+# COPY --from=builder_alpine /theia/ /theia/
+
+# # standard supervisor entrypoint used when supervisor isn't coming from this image
+# WORKDIR /ide/
+# COPY supervisor-ide-config.json /ide/
+
+# ENV GITPOD_BUILT_IN_PLUGINS /theia/node_modules/@gitpod/gitpod-ide/plugins/
+# COPY components-theia-app--builtin-plugins/plugins/ ${GITPOD_BUILT_IN_PLUGINS}
+
+# # supervisor is still needed here to work without registry-facade
+# # TODO(cw): remove once registry-facade is standard (except for supervisor-ide-config.json)
+# COPY components-supervisor--app/supervisor /theia/supervisor
+# COPY components-docker-up--app/* /theia/
+# COPY supervisor-config.json supervisor-ide-config.json /theia/
+
+# # cli config
+# COPY --from=builder_alpine /ide/bin /ide/bin
+# ENV GITPOD_APPEND_ENV_PATH /ide/bin:
+
+# # editor config
+# ENV GITPOD_ENV_SET_EDITOR "gp open -w"
+# ENV GITPOD_ENV_SET_VISUAL "$GITPOD_ENV_SET_EDITOR"
+# ENV GITPOD_ENV_SET_GIT_EDITOR "$GITPOD_ENV_SET_EDITOR"
