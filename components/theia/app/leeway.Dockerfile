@@ -32,7 +32,7 @@ ENV PATH=$PATH:/yarn-v1.22.10/bin/
 
 # yq - jq for YAML files
 RUN cd /usr/bin \
-    && curl -fsSL https://github.com/mikefarah/yq/releases/download/v4.6.3/yq_linux_amd64 > yq \
+    && curl -fsSL https://github.com/mikefarah/yq/releases/download/v4.6.3/yq_linux_arm64 > yq \
     && chmod +x yq
 ENV PATH=$PATH:/usr/bin/
 
