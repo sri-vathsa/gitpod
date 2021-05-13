@@ -7,10 +7,11 @@ package util
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -59,8 +60,6 @@ func FindAnyPodForComponent(clientSet kubernetes.Interface, namespace, label str
 	return pods.Items[0].Name, nil
 }
 
-var kubernetesDialerAddrRegexp = regexp.MustCompile(`(?P<namespace>[\w-\.]+)\/(?P<label>[\w-\.]+):(?P<port>\d+)`)
-
 // ForwardPort establishes a TCP port forwarding to a Kubernetes pod
 func ForwardPort(ctx context.Context, config *rest.Config, namespace, pod, port string) (readychan chan struct{}, errchan chan error) {
 	errchan = make(chan error, 1)
@@ -73,7 +72,7 @@ func ForwardPort(ctx context.Context, config *rest.Config, namespace, pod, port 
 	}
 
 	path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", namespace, pod)
-	hostIP := strings.TrimLeft(config.Host, "https://")
+	hostIP := strings.TrimPrefix(config.Host, "https://")
 	serverURL := url.URL{Scheme: "https", Path: path, Host: hostIP}
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: roundTripper}, http.MethodPost, &serverURL)
 
@@ -116,4 +115,32 @@ func ForwardPort(ctx context.Context, config *rest.Config, namespace, pod, port 
 	}()
 
 	return
+}
+
+// CertPoolFromSecret creates a x509 cert pool from a Kubernetes secret
+func CertPoolFromSecret(clientSet kubernetes.Interface, namespace, secretName string, files []string) (cert *x509.CertPool, err error) {
+	secret, err := clientSet.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
+	if err != nil {
+		return
+	}
+	cert = x509.NewCertPool()
+	for _, file := range files {
+		certFile := secret.Data[file]
+
+		if !cert.AppendCertsFromPEM(certFile) {
+			return nil, fmt.Errorf("credentials: failed to append certificates")
+		}
+	}
+	return
+}
+
+// CertFromSecret creates a cert from a Kubernetes secret
+func CertFromSecret(clientSet kubernetes.Interface, namespace, secretName, certFile, keyFile string) (cert tls.Certificate, err error) {
+	secret, err := clientSet.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
+	if err != nil {
+		return
+	}
+	certFileB := secret.Data[certFile]
+	keyFileB := secret.Data[keyFile]
+	return tls.X509KeyPair(certFileB, keyFileB)
 }

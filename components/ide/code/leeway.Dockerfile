@@ -2,7 +2,12 @@
 # Licensed under the GNU Affero General Public License (AGPL).
 # See License-AGPL.txt in the project root for license information.
 
-FROM node:12.18.3 AS node_installer
+# we use latest major version of Node.js distributed VS Code. (see about dialog in your local VS Code)
+# ideallay we should use exact version, but it has criticla bugs in regards to grpc over http2 streams
+ARG NODE_VERSION=12.21.0
+
+
+FROM node:${NODE_VERSION} AS node_installer
 RUN mkdir -p /ide/node/bin \
     /ide/node/include/node/ \
     /ide/node/lib/node_modules/npm/ \
@@ -17,18 +22,27 @@ RUN mkdir -p /ide/node/bin \
 RUN cp /ide/node/bin/node /ide/node/bin/gitpod-node && rm /ide/node/bin/node
 
 
-FROM mcr.microsoft.com/vscode/devcontainers/typescript-node:0-12 as code_installer
+FROM ubuntu:18.04 as code_installer
 
-
-# see https://github.com/gitpod-io/vscode/blob/bdeca3f8709b70b339f41fc2a14e94f83d6475ac/.github/workflows/ci.yml#L130
-RUN sudo apt-get update \
-    && sudo apt-get -y install --no-install-recommends libxkbfile-dev pkg-config libsecret-1-dev libxss1 dbus xvfb libgtk-3-0 libgbm1 \
+RUN apt-get update \
+    # see https://github.com/microsoft/vscode/blob/42e271dd2e7c8f320f991034b62d4c703afb3e28/.github/workflows/ci.yml#L94
+    && apt-get -y install --no-install-recommends libxkbfile-dev pkg-config libsecret-1-dev libxss1 dbus xvfb libgtk-3-0 libgbm1 \
+    && apt-get -y install --no-install-recommends git curl build-essential libssl-dev ca-certificates python \
     # Clean up
-    && sudo apt-get autoremove -y \
-    && sudo apt-get clean -y \
+    && apt-get autoremove -y \
+    && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-ENV GP_CODE_COMMIT 845053f04b5d9efd17f6f7626ba362925bd0bfe5
+ARG NODE_VERSION
+ENV NVM_DIR /root/.nvm
+RUN curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | sh \
+    && . $NVM_DIR/nvm.sh  \
+    && nvm install $NODE_VERSION \
+    && nvm alias default $NODE_VERSION \
+    && npm install -g yarn node-gyp
+ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+
+ENV GP_CODE_COMMIT e01c9d7b3bb46f68cb7d38ec3e8eb394621bba41
 RUN mkdir gp-code \
     && cd gp-code \
     && git init \
@@ -46,6 +60,7 @@ RUN chmod -R ugo+w /gitpod-pkg-server/extensions
 COPY bin /ide/bin
 RUN chmod -R ugo+x /ide/bin
 
+
 FROM scratch
 # copy static web resources in first layer to serve from blobserve
 COPY --from=code_installer /gitpod-pkg-web/ /ide/
@@ -58,7 +73,9 @@ COPY --from=code_installer /ide/bin /ide/bin
 ENV GITPOD_ENV_APPEND_PATH /ide/bin:
 
 # editor config
-ENV GITPOD_ENV_SET_EDITOR code
+ENV GITPOD_ENV_SET_EDITOR /ide/bin/code
 ENV GITPOD_ENV_SET_VISUAL "$GITPOD_ENV_SET_EDITOR"
 ENV GITPOD_ENV_SET_GP_OPEN_EDITOR "$GITPOD_ENV_SET_EDITOR"
 ENV GITPOD_ENV_SET_GIT_EDITOR "$GITPOD_ENV_SET_EDITOR --wait"
+ENV GITPOD_ENV_SET_GP_PREVIEW_BROWSER "/ide/bin/code --command gitpod.api.preview"
+ENV GITPOD_ENV_SET_GP_EXTERNAL_BROWSER "/ide/bin/code --open-external"

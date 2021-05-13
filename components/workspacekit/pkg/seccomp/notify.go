@@ -6,13 +6,11 @@ package seccomp
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-	"unsafe"
 
 	"github.com/moby/sys/mountinfo"
 	"golang.org/x/sys/unix"
@@ -30,6 +28,7 @@ type SyscallHandler interface {
 	Mount(req *libseccomp.ScmpNotifReq) (val uint64, errno int32, flags uint32)
 	Umount(req *libseccomp.ScmpNotifReq) (val uint64, errno int32, flags uint32)
 	Bind(req *libseccomp.ScmpNotifReq) (val uint64, errno int32, flags uint32)
+	Chown(req *libseccomp.ScmpNotifReq) (val uint64, errno int32, flags uint32)
 }
 
 func mapHandler(h SyscallHandler) map[string]syscallHandler {
@@ -38,6 +37,7 @@ func mapHandler(h SyscallHandler) map[string]syscallHandler {
 		"umount":  h.Umount,
 		"umount2": h.Umount,
 		"bind":    h.Bind,
+		"chown":   h.Chown,
 	}
 }
 
@@ -350,7 +350,6 @@ func (h *InWorkspaceHandler) Bind(req *libseccomp.ScmpNotifReq) (val uint64, err
 		val = 0
 		errno = 0
 		flags = libseccomp.NotifRespFlagContinue
-		return
 	}()
 
 	memFile, err := readarg.OpenMem(req.Pid)
@@ -384,6 +383,34 @@ func (h *InWorkspaceHandler) Bind(req *libseccomp.ScmpNotifReq) (val uint64, err
 	return
 }
 
+func (h *InWorkspaceHandler) Chown(req *libseccomp.ScmpNotifReq) (val uint64, errno int32, flags uint32) {
+	log := log.WithFields(map[string]interface{}{
+		"syscall": "bind",
+		"pid":     req.Pid,
+		"id":      req.ID,
+	})
+
+	memFile, err := readarg.OpenMem(req.Pid)
+	if err != nil {
+		log.WithError(err).Error("cannot open mem")
+		return
+	}
+	defer memFile.Close()
+
+	pth, err := readarg.ReadString(memFile, int64(req.Data.Args[0]))
+	if err != nil {
+		log.WithError(err).Error("cannot open mem")
+		return
+	}
+
+	if strings.HasPrefix(pth, "/dev/pts") {
+		return 0, 0, 0
+	}
+
+	return 0, 0, libseccomp.NotifRespFlagContinue
+}
+
+/*
 var nativeEndian binary.ByteOrder
 
 func init() {
@@ -399,3 +426,4 @@ func init() {
 		panic("Could not determine native endianness.")
 	}
 }
+*/

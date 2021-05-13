@@ -17,6 +17,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"golang.org/x/xerrors"
 
@@ -62,7 +63,7 @@ func (m *Mux) Start(cmd *exec.Cmd, options TermOptions) (alias string, err error
 	}
 	alias = uid.String()
 
-	term, err := newTerm(pty, cmd, options)
+	term, err := newTerm(alias, pty, cmd, options)
 	if err != nil {
 		pty.Close()
 		return "", err
@@ -75,7 +76,7 @@ func (m *Mux) Start(cmd *exec.Cmd, options TermOptions) (alias string, err error
 	go func() {
 		term.waitErr = cmd.Wait()
 		close(term.waitDone)
-		m.CloseTerminal(alias, 0*time.Second)
+		_ = m.CloseTerminal(alias, 0*time.Second)
 	}()
 
 	return alias, nil
@@ -188,7 +189,7 @@ func (term *Term) shutdownProcessImmediately() error {
 // For now we assume an average of five terminals per workspace, which makes this consume 1MiB of RAM.
 const terminalBacklogSize = 256 << 10
 
-func newTerm(pty *os.File, cmd *exec.Cmd, options TermOptions) (*Term, error) {
+func newTerm(alias string, pty *os.File, cmd *exec.Cmd, options TermOptions) (*Term, error) {
 	token, err := uuid.NewRandom()
 	if err != nil {
 		return nil, err
@@ -207,9 +208,11 @@ func newTerm(pty *os.File, cmd *exec.Cmd, options TermOptions) (*Term, error) {
 		PTY:     pty,
 		Command: cmd,
 		Stdout: &multiWriter{
-			timeout:  timeout,
-			listener: make(map[*multiWriterListener]struct{}),
-			recorder: recorder,
+			timeout:   timeout,
+			listener:  make(map[*multiWriterListener]struct{}),
+			recorder:  recorder,
+			logStdout: options.LogToStdout,
+			logLabel:  alias,
 		},
 		Annotations: options.Annotations,
 		title:       options.Title,
@@ -218,6 +221,20 @@ func newTerm(pty *os.File, cmd *exec.Cmd, options TermOptions) (*Term, error) {
 
 		waitDone: make(chan struct{}),
 	}
+
+	rawConn, err := pty.SyscallConn()
+	if err != nil {
+		return nil, err
+	}
+
+	err = rawConn.Control(func(fileFd uintptr) {
+		res.fd = int(fileFd)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	//nolint:errcheck
 	go io.Copy(res.Stdout, pty)
 	return res, nil
 }
@@ -235,6 +252,9 @@ type TermOptions struct {
 
 	// Title describes the terminal title.
 	Title string
+
+	// LogToStdout forwards the terminal's stdout to supervisor's stdout
+	LogToStdout bool
 }
 
 // Term is a pseudo-terminal
@@ -249,20 +269,24 @@ type Term struct {
 
 	waitErr  error
 	waitDone chan struct{}
+
+	fd int
 }
 
 func (term *Term) GetTitle() (string, error) {
+	var b bytes.Buffer
 	title := term.title
+	b.WriteString(title)
 	command, err := term.resolveForegroundCommand()
 	if title != "" && command != "" {
-		title += ": "
+		b.WriteString(": ")
 	}
-	title += command
-	return title, err
+	b.WriteString(command)
+	return b.String(), err
 }
 
 func (term *Term) resolveForegroundCommand() (string, error) {
-	pgrp, err := unix.IoctlGetInt(int(term.PTY.Fd()), unix.TIOCGPGRP)
+	pgrp, err := unix.IoctlGetInt(term.fd, unix.TIOCGPGRP)
 	if err != nil {
 		return "", err
 	}
@@ -283,9 +307,7 @@ func (term *Term) resolveForegroundCommand() (string, error) {
 
 // Wait waits for the terminal to exit and returns the resulted process state
 func (term *Term) Wait() (*os.ProcessState, error) {
-	select {
-	case <-term.waitDone:
-	}
+	<-term.waitDone
 	return term.Command.ProcessState, term.waitErr
 }
 
@@ -298,6 +320,9 @@ type multiWriter struct {
 	// ring buffer to record last 256kb of pty output
 	// new listener is initialized with the latest recodring first
 	recorder *RingBuffer
+
+	logStdout bool
+	logLabel  string
 }
 
 var (
@@ -368,7 +393,7 @@ func (mw *multiWriter) Listen() io.ReadCloser {
 
 	recording := mw.recorder.Bytes()
 	go func() {
-		w.Write(recording)
+		_, _ = w.Write(recording)
 
 		// copy bytes from channel to writer.
 		// Note: we close the writer independently of the write operation s.t. we don't
@@ -380,7 +405,7 @@ func (mw *multiWriter) Listen() io.ReadCloser {
 				err = io.ErrShortWrite
 			}
 			if err != nil {
-				res.CloseWithError(err)
+				_ = res.CloseWithError(err)
 			}
 		}
 	}()
@@ -410,6 +435,12 @@ func (mw *multiWriter) Write(p []byte) (n int, err error) {
 	defer mw.mu.Unlock()
 
 	mw.recorder.Write(p)
+	if mw.logStdout {
+		log.WithFields(logrus.Fields{
+			"terminalOutput": true,
+			"label":          mw.logLabel,
+		}).Info(string(p))
+	}
 
 	for lstr := range mw.listener {
 		if lstr.closed {
@@ -453,10 +484,3 @@ func (mw *multiWriter) ListenerCount() int {
 
 	return len(mw.listener)
 }
-
-type opCloser struct {
-	io.Reader
-	Op func() error
-}
-
-func (c *opCloser) Close() error { return c.Op() }

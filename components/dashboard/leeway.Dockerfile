@@ -2,26 +2,8 @@
 # Licensed under the GNU Affero General Public License (AGPL).
 # See License-AGPL.txt in the project root for license information.
 
-ARG EXCLUDE_SOURCES=""
 
-FROM nginx:stable-alpine as source_excluder
-ARG EXCLUDE_SOURCES
+FROM caddy/caddy:2.4.0-beta.2-alpine
 
-COPY components-dashboard--app/node_modules/@gitpod/dashboard/dist /www/data/dashboard
-COPY components-dashboard--app/node_modules/@gitpod/dashboard/public/libs /www/data/dashboard/libs
-# If specified, exclude all source maps
-RUN if [ ! -z "$EXCLUDE_SOURCES" ]; then rm /www/data/dashboard/*.map; fi
-
-
-FROM nginx:stable-alpine
-
-# Remove default stuff
-RUN rm -Rf /etc/nginx/conf.d \
-    && rm -f /etc/nginx/nginx.conf
-
-COPY components-dashboard--static/conf/nginx.conf /etc/nginx/nginx.conf
-COPY components-dashboard--static/conf/conf.d /etc/nginx/conf.d
-
-COPY components-dashboard--static/public /www/data/dashboard
-COPY components-dashboard--static/ee/public /www/data/dashboard
-COPY --from=source_excluder /www/data/dashboard /www/data/dashboard
+COPY components-dashboard--static/conf/Caddyfile /etc/caddy/Caddyfile
+COPY components-dashboard--app/build /www

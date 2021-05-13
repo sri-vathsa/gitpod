@@ -105,6 +105,7 @@ spec:
 {{- if $comp.volumes }}
 {{ toYaml $comp.volumes | indent 6 }}
 {{- end }}
+      enableServiceLinks: false
 {{- if (or $comp.userNamespaces.shiftfsModuleLoader.enabled $comp.userNamespaces.seccompProfileInstaller.enabled) }}
       initContainers:
 {{- end }}
@@ -200,5 +201,6 @@ spec:
         securityContext:
           privileged: true
           procMount: Unmasked
+{{ include "gitpod.kube-rbac-proxy" $this | indent 6 }}
 {{ toYaml .Values.defaults | indent 6 }}
 {{ end }}

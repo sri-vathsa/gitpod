@@ -6,6 +6,8 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
+	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -27,6 +29,9 @@ var workspacesCmd = &cobra.Command{
 
 func init() {
 	workspacesCmd.PersistentFlags().StringP("tls", "t", "", "TLS certificate when connecting to a secured gRPC endpoint")
+	workspacesCmd.PersistentFlags().Bool("tls-from-secret", false, "get TLS certificate from Kubernetes secret")
+	workspacesCmd.PersistentFlags().StringP("pod", "s", "ws-manager", "Pod label for the port forwarding")
+	workspacesCmd.PersistentFlags().StringP("port", "p", "8080", "remote port")
 
 	rootCmd.AddCommand(workspacesCmd)
 }
@@ -41,8 +46,18 @@ func getWorkspacesClient(ctx context.Context) (*grpc.ClientConn, api.WorkspaceMa
 		return nil, nil, err
 	}
 
-	port := "20202:8080"
-	podName, err := util.FindAnyPodForComponent(clientSet, namespace, "ws-manager")
+	podLabel, err := workspacesCmd.Flags().GetString("pod")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	remotePort, err := workspacesCmd.Flags().GetString("port")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	port := fmt.Sprintf("20202:%s", remotePort)
+	podName, err := util.FindAnyPodForComponent(clientSet, namespace, podLabel)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -56,8 +71,24 @@ func getWorkspacesClient(ctx context.Context) (*grpc.ClientConn, api.WorkspaceMa
 	}
 
 	secopt := grpc.WithInsecure()
-	cert, _ := workspacesCmd.Flags().GetString("tls")
-	if cert != "" {
+	if certFromSecret, _ := workspacesCmd.Flags().GetBool("tls-from-secret"); certFromSecret {
+		certPool, err := util.CertPoolFromSecret(clientSet, namespace, "ws-manager-tls", []string{"ca.crt"})
+		if err != nil {
+			return nil, nil, xerrors.Errorf("could not load ca cert: %w", err)
+		}
+		cert, err := util.CertFromSecret(clientSet, namespace, "ws-manager-client-tls", "tls.crt", "tls.key")
+		if err != nil {
+			return nil, nil, xerrors.Errorf("could not load tls cert: %w", err)
+		}
+		creds := credentials.NewTLS(&tls.Config{
+			Certificates: []tls.Certificate{cert},
+			RootCAs:      certPool,
+			ServerName:   "ws-manager",
+		})
+
+		secopt = grpc.WithTransportCredentials(creds)
+	}
+	if cert, _ := workspacesCmd.Flags().GetString("tls"); cert != "" {
 		creds, err := credentials.NewClientTLSFromFile(cert, "")
 		if err != nil {
 			return nil, nil, xerrors.Errorf("could not load tls cert: %w", err)

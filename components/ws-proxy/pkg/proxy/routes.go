@@ -257,12 +257,16 @@ func installWorkspacePortRoutes(r *mux.Router, config *RouteHandlerConfig) error
 
 	// forward request to workspace port
 	r.NewRoute().HandlerFunc(
-		proxyPass(
-			config,
-			workspacePodPortResolver,
-			withHTTPErrorHandler(showPortNotFoundPage),
-			withXFrameOptionsFilter(),
-		),
+		func(rw http.ResponseWriter, r *http.Request) {
+			r.Header.Add("X-Forwarded-Proto", "https")
+			r.Header.Add("X-Forwarded-Host", r.Host+":443")
+			proxyPass(
+				config,
+				workspacePodPortResolver,
+				withHTTPErrorHandler(showPortNotFoundPage),
+				withXFrameOptionsFilter(),
+			)(rw, r)
+		},
 	)
 
 	return nil
@@ -376,10 +380,11 @@ func logHandler(h http.Handler) http.Handler {
 			wsID = vars[workspaceIDIdentifier]
 			port = vars[workspacePortIdentifier]
 		)
-		entry := log.
-			WithField("workspaceId", wsID).
-			WithField("portID", port).
-			WithField("url", req.URL.String())
+		entry := logrus.Fields{
+			"workspaceId": wsID,
+			"portID":      port,
+			"url":         req.URL.String(),
+		}
 		ctx := context.WithValue(req.Context(), logContextValueKey, entry)
 		req = req.WithContext(ctx)
 
@@ -398,12 +403,12 @@ func logRouteHandlerHandler(routeHandlerName string) mux.MiddlewareFunc {
 
 func getLog(ctx context.Context) *logrus.Entry {
 	r := ctx.Value(logContextValueKey)
-	rl, ok := r.(*logrus.Entry)
+	rl, ok := r.(logrus.Fields)
 	if rl == nil || !ok {
 		return log.Log
 	}
 
-	return rl
+	return log.WithFields(rl)
 }
 
 func sensitiveCookieHandler(domain string) func(h http.Handler) http.Handler {

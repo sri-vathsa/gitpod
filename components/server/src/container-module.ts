@@ -31,9 +31,9 @@ import { TokenProvider } from './user/token-provider';
 import { UserService } from './user/user-service';
 import { UserDeletionService } from './user/user-deletion-service';
 import { WorkspaceDeletionService } from './workspace/workspace-deletion-service';
-import { GCloudStorageClient } from './storage/gcloud-storage-client';
 import { EnvvarPrefixParser } from './workspace/envvar-prefix-context-parser';
-import { WorkspaceManagerClientProvider, WorkspaceManagerClientProviderConfig, WorkspaceManagerClientProviderEnvConfig } from '@gitpod/ws-manager/lib/client-provider';
+import { WorkspaceManagerClientProvider } from '@gitpod/ws-manager/lib/client-provider';
+import { WorkspaceManagerClientProviderCompositeSource, WorkspaceManagerClientProviderDBSource, WorkspaceManagerClientProviderEnvSource, WorkspaceManagerClientProviderSource } from '@gitpod/ws-manager/lib/client-provider-source';
 import { WorkspaceStarter } from './workspace/workspace-starter';
 import { TracingManager } from '@gitpod/gitpod-protocol/lib/util/tracing';
 import { AuthorizationService, AuthorizationServiceImpl } from './user/authorization-service';
@@ -43,14 +43,10 @@ import { ConsensusLeaderMessenger } from './consensus/consensus-leader-messenger
 import { RabbitMQConsensusLeaderMessenger } from './consensus/rabbitmq-consensus-leader-messenger';
 import { ConsensusLeaderQorum } from './consensus/consensus-leader-quorum';
 import { StorageClient } from './storage/storage-client';
-import { log } from '@gitpod/gitpod-protocol/lib/util/logging';
-import { MinIOStorageClient } from './storage/minio-storage-client';
-import { Client } from 'minio';
 import { ImageBuilderClientConfig, ImageBuilderClientProvider, CachingImageBuilderClientProvider } from '@gitpod/image-builder/lib';
 import { ImageSourceProvider } from './workspace/image-source-provider';
 import { WorkspaceGarbageCollector } from './workspace/garbage-collector';
 import { TokenGarbageCollector } from './user/token-garbage-collector';
-import { filePathTelepresenceAware } from '@gitpod/gitpod-protocol/lib/env';
 import { WorkspaceDownloadService } from './workspace/workspace-download-service';
 import { WorkspacePortAuthorizationService } from './user/workspace-port-auth-service';
 import { WebsocketConnectionManager } from './websocket-connection-manager';
@@ -68,10 +64,16 @@ import { MonitoringEndpointsApp } from './monitoring-endpoints';
 import { BearerAuth } from './auth/bearer-authenticator';
 import { TermsProvider } from './terms/terms-provider';
 import { TosCookie } from './user/tos-cookie';
-import { SelectAccountCookie } from './user/select-account-cookie';
+import { ContentServiceClient } from '@gitpod/content-service/lib/content_grpc_pb';
 import { BlobServiceClient } from '@gitpod/content-service/lib/blobs_grpc_pb';
-import * as grpc from "grpc";
+import { WorkspaceServiceClient } from '@gitpod/content-service/lib/workspace_grpc_pb';
+import * as grpc from "@grpc/grpc-js";
 import { CodeSyncService } from './code-sync/code-sync-service';
+import { ContentServiceStorageClient } from './storage/content-service-client';
+import { IDEPluginServiceClient } from '@gitpod/content-service/lib/ideplugin_grpc_pb';
+import { GitTokenScopeGuesser } from './workspace/git-token-scope-guesser';
+import { GitTokenValidator } from './workspace/git-token-validator';
+import { newAnalyticsWriterFromEnv, IAnalyticsWriter } from '@gitpod/gitpod-protocol/lib/util/analytics';
 
 export const productionContainerModule = new ContainerModule((bind, unbind, isBound, rebind) => {
     bind(Env).toSelf().inSingletonScope();
@@ -88,7 +90,6 @@ export const productionContainerModule = new ContainerModule((bind, unbind, isBo
     bind(LoginCompletionHandler).toSelf().inSingletonScope();
     bind(GitpodCookie).toSelf().inSingletonScope();
     bind(TosCookie).toSelf().inSingletonScope();
-    bind(SelectAccountCookie).toSelf().inSingletonScope();
 
     bind(SessionHandlerProvider).toSelf().inSingletonScope();
     bind(Server).toSelf().inSingletonScope();
@@ -133,6 +134,9 @@ export const productionContainerModule = new ContainerModule((bind, unbind, isBo
     bind(IContextParser).to(SnapshotContextParser).inSingletonScope();
     bind(IPrefixContextParser).to(EnvvarPrefixParser).inSingletonScope();
 
+    bind(GitTokenScopeGuesser).toSelf().inSingletonScope();
+    bind(GitTokenValidator).toSelf().inSingletonScope();
+
     bind(BlockedUserFilter).to(NoOneBlockedUserFilter).inSingletonScope();
 
     bind(MonitoringEndpointsApp).toSelf().inSingletonScope();
@@ -143,46 +147,12 @@ export const productionContainerModule = new ContainerModule((bind, unbind, isBo
     })).inSingletonScope();
     bind(HostContextProvider).to(HostContextProviderImpl).inSingletonScope();
 
-    bind(GCloudStorageClient).toDynamicValue(ctx => {
-        const env = ctx.container.get(Env);
-        if (!env.gcloudCredentialsFile || !env.gcloudProjectID) {
-            throw "no GCloud config found";
-        }
-
-        return new GCloudStorageClient({
-            keyFilename: filePathTelepresenceAware("/storageKeySecret/" + env.gcloudCredentialsFile),
-            projectId: env.gcloudProjectID,
-            stage: env.kubeStage,
-            region: env.gcloudRegion,
-        });
-    }).inSingletonScope();
-    bind(MinIOStorageClient).toDynamicValue(ctx => {
-        const env = ctx.container.get(Env);
-        return new MinIOStorageClient(new Client({
-            endPoint: env.minioEndPoint!,
-            port: parseInt(env.minioPort!),
-            accessKey: env.minioAccessKey!,
-            secretKey: env.minioSecretKey!,
-            region: env.minioRegion!,
-            useSSL: env.minioUseSSL,
-        }), env.minioRegion!);
-    });
-    bind(StorageClient).toDynamicValue(ctx => {
-        const env = ctx.container.get(Env);
-
-        if (env.storageClient === 'minio') {
-            log.info("Using MinIO storage client");
-            return ctx.container.get(MinIOStorageClient);
-        } else {
-            log.info("Using GCloud storage client")
-            return ctx.container.get(GCloudStorageClient);
-        }
-    }).inSingletonScope();
-
     bind(TracingManager).toSelf().inSingletonScope();
 
     bind(WorkspaceManagerClientProvider).toSelf().inSingletonScope();
-    bind(WorkspaceManagerClientProviderConfig).to(WorkspaceManagerClientProviderEnvConfig).inSingletonScope();
+    bind(WorkspaceManagerClientProviderCompositeSource).toSelf().inSingletonScope();
+    bind(WorkspaceManagerClientProviderSource).to(WorkspaceManagerClientProviderEnvSource).inSingletonScope();
+    bind(WorkspaceManagerClientProviderSource).to(WorkspaceManagerClientProviderDBSource).inSingletonScope();
 
     bind(TheiaPluginService).toSelf().inSingletonScope();
 
@@ -203,8 +173,19 @@ export const productionContainerModule = new ContainerModule((bind, unbind, isBo
 
     bind(TermsProvider).toSelf().inSingletonScope();
 
-    const blobServiceClient = new BlobServiceClient("content-service:8080", grpc.credentials.createInsecure())
+    const contentServiceAddress = process.env.CONTENT_SERVICE_ADDRESS || "content-service:8080";
+    const contentServiceClient = new ContentServiceClient(contentServiceAddress, grpc.credentials.createInsecure())
+    bind(ContentServiceClient).toConstantValue(contentServiceClient);
+    const blobServiceClient = new BlobServiceClient(contentServiceAddress, grpc.credentials.createInsecure())
     bind(BlobServiceClient).toConstantValue(blobServiceClient);
+    const workspaceServiceClient = new WorkspaceServiceClient(contentServiceAddress, grpc.credentials.createInsecure())
+    bind(WorkspaceServiceClient).toConstantValue(workspaceServiceClient);
+    const idePluginServiceClient = new IDEPluginServiceClient(contentServiceAddress, grpc.credentials.createInsecure())
+    bind(IDEPluginServiceClient).toConstantValue(idePluginServiceClient);
+
+    bind(StorageClient).to(ContentServiceStorageClient).inSingletonScope();
 
     bind(CodeSyncService).toSelf().inSingletonScope();
+
+    bind(IAnalyticsWriter).toDynamicValue(newAnalyticsWriterFromEnv).inSingletonScope();
 });

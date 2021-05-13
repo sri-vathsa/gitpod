@@ -96,8 +96,8 @@ affinity:
 {{- if $gp.components.workspace.affinity.probe -}}{{- $_ := set $expr $gp.components.workspace.affinity.probe "" -}}{{- end -}}
 {{- if $gp.components.workspace.affinity.regular -}}{{- $_ := set $expr $gp.components.workspace.affinity.regular "" -}}{{- end -}}
 {{- end -}}
-{{- /* 
-  In a previous iteration of the templates the node affinity was part of the workspace pod template. 
+{{- /*
+  In a previous iteration of the templates the node affinity was part of the workspace pod template.
   In that case we need to extract the affinity from the template and add it to the workspace affinity set.
 */ -}}
 {{- if $gp.components.workspace.template -}}
@@ -193,6 +193,17 @@ env:
   value: {{ template "gitpod.installation.shortname" . }}
 {{- end -}}
 
+{{- define "gitpod.container.analyticsEnv" -}}
+{{- $ := .root -}}
+{{- $gp := .gp -}}
+{{- if $gp.analytics -}}
+- name: GITPOD_ANALYTICS_WRITER
+  value: {{ $gp.analytics.writer | quote }}
+- name: GITPOD_ANALYTICS_SEGMENT_KEY
+  value: {{ $gp.analytics.segmentKey | quote }}
+{{- end }}
+{{- end -}}
+
 {{- define "gitpod.container.dbEnv" -}}
 {{- $ := .root -}}
 {{- $gp := .gp -}}
@@ -221,24 +232,24 @@ env:
 {{- $ := .root -}}
 {{- $gp := .gp -}}
 - name: MESSAGEBUS_USERNAME
-  value: "{{ $gp.messagebus.username }}"
+  value: "{{ $gp.rabbitmq.auth.username }}"
 - name: MESSAGEBUS_PASSWORD
-  value: "{{ $gp.messagebus.password }}"
+  value: "{{ $gp.rabbitmq.auth.password }}"
 - name: MESSAGEBUS_CA
   valueFrom:
     secretKeyRef:
-        name: {{ $gp.messagebus.secretName }}
-        key: ca
+        name: {{ $gp.rabbitmq.auth.tls.existingSecret | quote }}
+        key: ca.crt
 - name: MESSAGEBUS_CERT
   valueFrom:
     secretKeyRef:
-        name: {{ $gp.messagebus.secretName }}
-        key: cert
+        name: {{ $gp.rabbitmq.auth.tls.existingSecret | quote }}
+        key: tls.crt
 - name: MESSAGEBUS_KEY
   valueFrom:
     secretKeyRef:
-        name: {{ $gp.messagebus.secretName }}
-        key: key
+        name: {{ $gp.rabbitmq.auth.tls.existingSecret | quote }}
+        key: tls.key
 {{- end -}}
 
 {{- define "gitpod.container.tracingEnv" -}}
@@ -247,7 +258,7 @@ env:
 {{- $comp := .comp -}}
 {{- $tracing := $comp.tracing | default $gp.tracing -}}
 {{- if $tracing }}
-{{- if $tracing.endoint }}          
+{{- if $tracing.endoint }}
 - name: JAEGER_ENDPOINT
   value: {{ $tracing.endoint }}
 {{- else }}
@@ -339,4 +350,30 @@ storage:
 {{- else }}
 {{ toYaml .remoteStorage | indent 2 }}
 {{- end -}}
+{{- end -}}
+
+{{- define "gitpod.kube-rbac-proxy" -}}
+- name: kube-rbac-proxy
+  image: quay.io/brancz/kube-rbac-proxy:v0.9.0
+  args:
+  - --logtostderr
+  - --insecure-listen-address=[$(IP)]:9500
+  - --upstream=http://127.0.0.1:9500/
+  env:
+  - name: IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
+  ports:
+  - containerPort: 9500
+    name: metrics
+  resources:
+    requests:
+      cpu: 1m
+      memory: 30Mi
+  securityContext:
+    runAsGroup: 65532
+    runAsNonRoot: true
+    runAsUser: 65532
+  terminationMessagePolicy: FallbackToLogsOnError
 {{- end -}}

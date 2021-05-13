@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 Gitpod GmbH. All rights reserved.
+ * Copyright (c) 2021 Gitpod GmbH. All rights reserved.
  * Licensed under the GNU Affero General Public License (AGPL).
  * See License-AGPL.txt in the project root for license information.
  */
@@ -8,23 +8,22 @@
 // file: imgbuilder.proto
 
 /* tslint:disable */
+/* eslint-disable */
 
 import * as jspb from "google-protobuf";
 import * as content_service_api_initializer_pb from "@gitpod/content-service/lib";
 
-export class BuildSource extends jspb.Message { 
+export class BuildSource extends jspb.Message {
 
     hasRef(): boolean;
     clearRef(): void;
     getRef(): BuildSourceReference | undefined;
-    setRef(value?: BuildSourceReference): void;
-
+    setRef(value?: BuildSourceReference): BuildSource;
 
     hasFile(): boolean;
     clearFile(): void;
     getFile(): BuildSourceDockerfile | undefined;
-    setFile(value?: BuildSourceDockerfile): void;
-
+    setFile(value?: BuildSourceDockerfile): BuildSource;
 
     getFromCase(): BuildSource.FromCase;
 
@@ -46,19 +45,15 @@ export namespace BuildSource {
 
     export enum FromCase {
         FROM_NOT_SET = 0,
-    
-    REF = 1,
-
-    FILE = 2,
-
+        REF = 1,
+        FILE = 2,
     }
 
 }
 
-export class BuildSourceReference extends jspb.Message { 
+export class BuildSourceReference extends jspb.Message {
     getRef(): string;
-    setRef(value: string): void;
-
+    setRef(value: string): BuildSourceReference;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): BuildSourceReference.AsObject;
@@ -76,22 +71,18 @@ export namespace BuildSourceReference {
     }
 }
 
-export class BuildSourceDockerfile extends jspb.Message { 
+export class BuildSourceDockerfile extends jspb.Message {
 
     hasSource(): boolean;
     clearSource(): void;
     getSource(): content_service_api_initializer_pb.WorkspaceInitializer | undefined;
-    setSource(value?: content_service_api_initializer_pb.WorkspaceInitializer): void;
-
+    setSource(value?: content_service_api_initializer_pb.WorkspaceInitializer): BuildSourceDockerfile;
     getDockerfileVersion(): string;
-    setDockerfileVersion(value: string): void;
-
+    setDockerfileVersion(value: string): BuildSourceDockerfile;
     getDockerfilePath(): string;
-    setDockerfilePath(value: string): void;
-
+    setDockerfilePath(value: string): BuildSourceDockerfile;
     getContextPath(): string;
-    setContextPath(value: string): void;
-
+    setContextPath(value: string): BuildSourceDockerfile;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): BuildSourceDockerfile.AsObject;
@@ -112,16 +103,14 @@ export namespace BuildSourceDockerfile {
     }
 }
 
-export class ResolveBaseImageRequest extends jspb.Message { 
+export class ResolveBaseImageRequest extends jspb.Message {
     getRef(): string;
-    setRef(value: string): void;
-
+    setRef(value: string): ResolveBaseImageRequest;
 
     hasAuth(): boolean;
     clearAuth(): void;
     getAuth(): BuildRegistryAuth | undefined;
-    setAuth(value?: BuildRegistryAuth): void;
-
+    setAuth(value?: BuildRegistryAuth): ResolveBaseImageRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ResolveBaseImageRequest.AsObject;
@@ -140,10 +129,9 @@ export namespace ResolveBaseImageRequest {
     }
 }
 
-export class ResolveBaseImageResponse extends jspb.Message { 
+export class ResolveBaseImageResponse extends jspb.Message {
     getRef(): string;
-    setRef(value: string): void;
-
+    setRef(value: string): ResolveBaseImageResponse;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ResolveBaseImageResponse.AsObject;
@@ -161,19 +149,17 @@ export namespace ResolveBaseImageResponse {
     }
 }
 
-export class ResolveWorkspaceImageRequest extends jspb.Message { 
+export class ResolveWorkspaceImageRequest extends jspb.Message {
 
     hasSource(): boolean;
     clearSource(): void;
     getSource(): BuildSource | undefined;
-    setSource(value?: BuildSource): void;
-
+    setSource(value?: BuildSource): ResolveWorkspaceImageRequest;
 
     hasAuth(): boolean;
     clearAuth(): void;
     getAuth(): BuildRegistryAuth | undefined;
-    setAuth(value?: BuildRegistryAuth): void;
-
+    setAuth(value?: BuildRegistryAuth): ResolveWorkspaceImageRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ResolveWorkspaceImageRequest.AsObject;
@@ -192,16 +178,13 @@ export namespace ResolveWorkspaceImageRequest {
     }
 }
 
-export class ResolveWorkspaceImageResponse extends jspb.Message { 
+export class ResolveWorkspaceImageResponse extends jspb.Message {
     getRef(): string;
-    setRef(value: string): void;
-
+    setRef(value: string): ResolveWorkspaceImageResponse;
     getBaseRef(): string;
-    setBaseRef(value: string): void;
-
+    setBaseRef(value: string): ResolveWorkspaceImageResponse;
     getStatus(): BuildStatus;
-    setStatus(value: BuildStatus): void;
-
+    setStatus(value: BuildStatus): ResolveWorkspaceImageResponse;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ResolveWorkspaceImageResponse.AsObject;
@@ -221,19 +204,17 @@ export namespace ResolveWorkspaceImageResponse {
     }
 }
 
-export class BuildRequest extends jspb.Message { 
+export class BuildRequest extends jspb.Message {
 
     hasSource(): boolean;
     clearSource(): void;
     getSource(): BuildSource | undefined;
-    setSource(value?: BuildSource): void;
-
+    setSource(value?: BuildSource): BuildRequest;
 
     hasAuth(): boolean;
     clearAuth(): void;
     getAuth(): BuildRegistryAuth | undefined;
-    setAuth(value?: BuildRegistryAuth): void;
-
+    setAuth(value?: BuildRegistryAuth): BuildRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): BuildRequest.AsObject;
@@ -252,19 +233,17 @@ export namespace BuildRequest {
     }
 }
 
-export class BuildRegistryAuth extends jspb.Message { 
+export class BuildRegistryAuth extends jspb.Message {
 
     hasTotal(): boolean;
     clearTotal(): void;
     getTotal(): BuildRegistryAuthTotal | undefined;
-    setTotal(value?: BuildRegistryAuthTotal): void;
-
+    setTotal(value?: BuildRegistryAuthTotal): BuildRegistryAuth;
 
     hasSelective(): boolean;
     clearSelective(): void;
     getSelective(): BuildRegistryAuthSelective | undefined;
-    setSelective(value?: BuildRegistryAuthSelective): void;
-
+    setSelective(value?: BuildRegistryAuthSelective): BuildRegistryAuth;
 
     getModeCase(): BuildRegistryAuth.ModeCase;
 
@@ -286,19 +265,15 @@ export namespace BuildRegistryAuth {
 
     export enum ModeCase {
         MODE_NOT_SET = 0,
-    
-    TOTAL = 1,
-
-    SELECTIVE = 2,
-
+        TOTAL = 1,
+        SELECTIVE = 2,
     }
 
 }
 
-export class BuildRegistryAuthTotal extends jspb.Message { 
+export class BuildRegistryAuthTotal extends jspb.Message {
     getAllowAll(): boolean;
-    setAllowAll(value: boolean): void;
-
+    setAllowAll(value: boolean): BuildRegistryAuthTotal;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): BuildRegistryAuthTotal.AsObject;
@@ -316,18 +291,15 @@ export namespace BuildRegistryAuthTotal {
     }
 }
 
-export class BuildRegistryAuthSelective extends jspb.Message { 
+export class BuildRegistryAuthSelective extends jspb.Message {
     getAllowBaserep(): boolean;
-    setAllowBaserep(value: boolean): void;
-
+    setAllowBaserep(value: boolean): BuildRegistryAuthSelective;
     getAllowWorkspacerep(): boolean;
-    setAllowWorkspacerep(value: boolean): void;
-
+    setAllowWorkspacerep(value: boolean): BuildRegistryAuthSelective;
     clearAnyOfList(): void;
     getAnyOfList(): Array<string>;
-    setAnyOfList(value: Array<string>): void;
+    setAnyOfList(value: Array<string>): BuildRegistryAuthSelective;
     addAnyOf(value: string, index?: number): string;
-
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): BuildRegistryAuthSelective.AsObject;
@@ -347,19 +319,15 @@ export namespace BuildRegistryAuthSelective {
     }
 }
 
-export class BuildResponse extends jspb.Message { 
+export class BuildResponse extends jspb.Message {
     getRef(): string;
-    setRef(value: string): void;
-
+    setRef(value: string): BuildResponse;
     getBaseRef(): string;
-    setBaseRef(value: string): void;
-
+    setBaseRef(value: string): BuildResponse;
     getStatus(): BuildStatus;
-    setStatus(value: BuildStatus): void;
-
+    setStatus(value: BuildStatus): BuildResponse;
     getMessage(): string;
-    setMessage(value: string): void;
-
+    setMessage(value: string): BuildResponse;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): BuildResponse.AsObject;
@@ -380,13 +348,11 @@ export namespace BuildResponse {
     }
 }
 
-export class LogsRequest extends jspb.Message { 
+export class LogsRequest extends jspb.Message {
     getBuildRef(): string;
-    setBuildRef(value: string): void;
-
+    setBuildRef(value: string): LogsRequest;
     getCensored(): boolean;
-    setCensored(value: boolean): void;
-
+    setCensored(value: boolean): LogsRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): LogsRequest.AsObject;
@@ -405,12 +371,11 @@ export namespace LogsRequest {
     }
 }
 
-export class LogsResponse extends jspb.Message { 
+export class LogsResponse extends jspb.Message {
     getContent(): Uint8Array | string;
     getContent_asU8(): Uint8Array;
     getContent_asB64(): string;
-    setContent(value: Uint8Array | string): void;
-
+    setContent(value: Uint8Array | string): LogsResponse;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): LogsResponse.AsObject;
@@ -428,7 +393,7 @@ export namespace LogsResponse {
     }
 }
 
-export class ListBuildsRequest extends jspb.Message { 
+export class ListBuildsRequest extends jspb.Message {
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ListBuildsRequest.AsObject;
@@ -445,12 +410,11 @@ export namespace ListBuildsRequest {
     }
 }
 
-export class ListBuildsResponse extends jspb.Message { 
+export class ListBuildsResponse extends jspb.Message {
     clearBuildsList(): void;
     getBuildsList(): Array<BuildInfo>;
-    setBuildsList(value: Array<BuildInfo>): void;
+    setBuildsList(value: Array<BuildInfo>): ListBuildsResponse;
     addBuilds(value?: BuildInfo, index?: number): BuildInfo;
-
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ListBuildsResponse.AsObject;
@@ -468,16 +432,13 @@ export namespace ListBuildsResponse {
     }
 }
 
-export class BuildInfo extends jspb.Message { 
+export class BuildInfo extends jspb.Message {
     getRef(): string;
-    setRef(value: string): void;
-
+    setRef(value: string): BuildInfo;
     getStatus(): BuildStatus;
-    setStatus(value: BuildStatus): void;
-
+    setStatus(value: BuildStatus): BuildInfo;
     getStartedAt(): number;
-    setStartedAt(value: number): void;
-
+    setStartedAt(value: number): BuildInfo;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): BuildInfo.AsObject;

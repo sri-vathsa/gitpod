@@ -33,6 +33,8 @@ import { PeriodicDbDeleter } from './periodic-deleter';
 import { TermsAcceptanceDB } from './terms-acceptance-db';
 import { TermsAcceptanceDBImpl } from './typeorm/terms-acceptance-db-impl';
 import { CodeSyncResourceDB } from './typeorm/code-sync-resource-db';
+import { WorkspaceClusterDBImpl } from './typeorm/workspace-cluster-db-impl';
+import { WorkspaceClusterDB } from './workspace-cluster-db';
 
 // THE DB container module that contains all DB implementations
 export const dbContainerModule = new ContainerModule((bind, unbind, isBound, rebind) => {
@@ -41,7 +43,7 @@ export const dbContainerModule = new ContainerModule((bind, unbind, isBound, reb
     bind(DBWithTracing).toSelf().inSingletonScope();
     bind(TransactionalWorkspaceDbImpl).toSelf().inSingletonScope();
     bind(DeletedEntryGC).toSelf().inSingletonScope();
-    
+
     bind(TypeORMUserDBImpl).toSelf().inSingletonScope();
     bind(UserDB).toService(TypeORMUserDBImpl);
     bind(TermsAcceptanceDBImpl).toSelf().inSingletonScope();
@@ -57,10 +59,10 @@ export const dbContainerModule = new ContainerModule((bind, unbind, isBound, reb
 
     bind(TypeORMUserStorageResourcesDBImpl).toSelf().inSingletonScope();
     bind(UserStorageResourcesDB).toService(TypeORMUserStorageResourcesDBImpl);
-    
+
     bind(TypeORMAppInstallationDBImpl).toSelf().inSingletonScope();
     bind(AppInstallationDB).toService(TypeORMAppInstallationDBImpl);
-    
+
     bind(TheiaPluginDBImpl).toSelf().inSingletonScope();
     bind(TheiaPluginDB).toService(TheiaPluginDBImpl);
 
@@ -85,4 +87,6 @@ export const dbContainerModule = new ContainerModule((bind, unbind, isBound, reb
     bind(PeriodicDbDeleter).toSelf().inSingletonScope();
 
     bind(CodeSyncResourceDB).toSelf().inSingletonScope();
+
+    bind(WorkspaceClusterDB).to(WorkspaceClusterDBImpl).inSingletonScope();
 });

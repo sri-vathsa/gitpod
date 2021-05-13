@@ -2,15 +2,24 @@
 // Licensed under the GNU Affero General Public License (AGPL).
 // See License-AGPL.txt in the project root for license information.
 
+// Download files to be embed in the binary
+//go:generate ./dependencies.sh
+
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
+	"embed"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -19,6 +28,7 @@ import (
 	sigproxysignal "github.com/rootless-containers/rootlesskit/pkg/sigproxy/signal"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"golang.org/x/sys/unix"
 )
 
 var log *logrus.Entry
@@ -31,10 +41,19 @@ var opts struct {
 	Verbose              bool
 }
 
+//go:embed docker.tgz
+//go:embed docker-compose
+//go:embed slirp4netns
+var binaries embed.FS
+
+const (
+	dockerSocketFN = "/var/run/docker.sock"
+)
+
 func main() {
 	self, err := os.Executable()
 	if err != nil {
-		log.WithError(err).Fatal()
+		logrus.WithError(err).Fatal()
 	}
 
 	pflag.BoolVarP(&opts.Verbose, "verbose", "v", false, "enables verbose logging")
@@ -54,6 +73,11 @@ func main() {
 		cmd = args[0]
 	}
 
+	listenFD := os.Getenv("LISTEN_FDS") != ""
+	if _, err := os.Stat(dockerSocketFN); !listenFD && (err == nil || !os.IsNotExist(err)) {
+		logger.Fatalf("Docker socket already exists at %s.\nIn a Gitpod workspace Docker will start automatically when used.\nIf all else fails, please remove %s and try again.", dockerSocketFN, dockerSocketFN)
+	}
+
 	switch cmd {
 	case "child":
 		log = logger.WithField("service", "runWithinNetns")
@@ -69,8 +93,10 @@ func main() {
 }
 
 func runWithinNetns() (err error) {
-	// magic file descriptor 3 was passed in from the parent using ExtraFiles
-	fd := os.NewFile(uintptr(3), "")
+	listenFDs, _ := strconv.Atoi(os.Getenv("LISTEN_FDS"))
+
+	// magic file descriptor 3+listenFDs was passed in from the parent using ExtraFiles
+	fd := os.NewFile(uintptr(3+listenFDs), "")
 	defer fd.Close()
 
 	log.Debug("waiting for parent")
@@ -102,6 +128,19 @@ func runWithinNetns() (err error) {
 		)
 	}
 
+	if listenFDs > 0 {
+		os.Setenv("LISTEN_PID", strconv.Itoa(os.Getpid()))
+		args = append(args, "-H", "fd://")
+
+		dockerd, err := exec.LookPath("dockerd")
+		if err != nil {
+			return err
+		}
+		argv := []string{dockerd}
+		argv = append(argv, args...)
+		return unix.Exec(dockerd, argv, os.Environ())
+	}
+
 	cmd := exec.Command("dockerd", args...)
 	log.WithField("args", args).Debug("starting dockerd")
 	cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -110,17 +149,19 @@ func runWithinNetns() (err error) {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
 	err = cmd.Start()
 	if err != nil {
 		return err
 	}
+
 	sigc := sigproxy.ForwardAllSignals(context.Background(), cmd.Process.Pid)
 	defer sigproxysignal.StopCatch(sigc)
 
 	if opts.UserAccessibleSocket {
 		go func() {
 			for {
-				err := os.Chmod("/var/run/docker.sock", 0666)
+				err := os.Chmod(dockerSocketFN, 0666)
 
 				if os.IsNotExist(err) {
 					time.Sleep(500 * time.Millisecond)
@@ -165,13 +206,22 @@ func runOutsideNetns() error {
 		Pdeathsig:    syscall.SIGKILL,
 		Unshareflags: syscall.CLONE_NEWNET,
 	}
-	cmd.ExtraFiles = []*os.File{pipeR}
+	if fds, err := strconv.Atoi(os.Getenv("LISTEN_FDS")); err == nil {
+		for i := 0; i < fds; i++ {
+			fmt.Printf("passing fd %d\n", i)
+			cmd.ExtraFiles = append(cmd.ExtraFiles, os.NewFile(uintptr(3+i), ""))
+		}
+	} else {
+		log.WithError(err).WithField("LISTEN_FDS", os.Getenv("listen_fds")).Warn("no LISTEN_FDS")
+	}
+	cmd.ExtraFiles = append(cmd.ExtraFiles, pipeR)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(),
 		"DOCKERUP_SLIRP4NETNS_SOCKET="+slirpAPI.Name(),
 	)
+
 	err = cmd.Start()
 	if err != nil {
 		return err
@@ -198,7 +248,8 @@ func runOutsideNetns() error {
 	if err != nil {
 		return err
 	}
-	defer slirpCmd.Process.Kill()
+	//nolint:errcheck
+	slirpCmd.Process.Kill()
 
 	_, err = msgutil.MarshalToWriter(pipeW, message{Stage: 1})
 	if err != nil {
@@ -215,12 +266,14 @@ func runOutsideNetns() error {
 }
 
 func ensurePrerequisites() error {
-	commands := map[string]string{
-		"dockerd":     "docker.io",
-		"slirp4netns": "slirp4netns",
+	commands := map[string]func() error{
+		"dockerd":        installDocker,
+		"docker-compose": installDockerCompose,
+		"iptables":       installIptables,
+		"slirp4netns":    installSlirp4netns,
 	}
 
-	var pkgs []string
+	var pkgs []func() error
 	for cmd, pkg := range commands {
 		if pth, _ := exec.LookPath(cmd); pth == "" {
 			log.WithField("command", cmd).Warn("missing prerequisite")
@@ -235,22 +288,126 @@ func ensurePrerequisites() error {
 	if !opts.AutoInstall {
 		return errMissingPrerequisites
 	}
-	if pth, _ := exec.LookPath("apt-get"); pth == "" {
-		return errMissingPrerequisites
+
+	for _, pkg := range pkgs {
+		err := pkg()
+		if err != nil {
+			return err
+		}
 	}
 
-	args := []string{"install", "-y"}
-	args = append(args, pkgs...)
-	cmd := exec.Command("apt-get", args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Pdeathsig: syscall.SIGKILL,
-	}
-	return cmd.Run()
+	return nil
 }
 
 type message struct {
 	Stage int `json:"stage"`
+}
+
+func installDocker() error {
+	binary, err := binaries.Open("docker.tgz")
+	if err != nil {
+		return err
+	}
+	defer binary.Close()
+
+	gzipReader, err := gzip.NewReader(binary)
+	if err != nil {
+		return err
+	}
+
+	tarReader := tar.NewReader(gzipReader)
+	for {
+		hdr, err := tarReader.Next()
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+
+			return fmt.Errorf("Unable to extract container: %v\n", err)
+		}
+
+		hdrInfo := hdr.FileInfo()
+		dstpath := path.Join("/usr/bin", strings.TrimPrefix(hdr.Name, "docker/"))
+		mode := hdrInfo.Mode()
+
+		switch hdr.Typeflag {
+		case tar.TypeReg, tar.TypeRegA:
+			file, err := os.OpenFile(dstpath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
+			if err != nil {
+				return fmt.Errorf("unable to create file: %v", err)
+			}
+
+			if _, err := io.Copy(file, tarReader); err != nil {
+				file.Close()
+				return fmt.Errorf("unable to write file: %v", err)
+			}
+
+			file.Close()
+		}
+		//nolint:errcheck
+		os.Chtimes(dstpath, hdr.AccessTime, hdr.ModTime)
+	}
+
+	return nil
+}
+
+func installDockerCompose() error {
+	return installBinary("docker-compose", "/usr/local/bin/docker-compose")
+}
+
+func installIptables() error {
+	pth, _ := exec.LookPath("apt-get")
+	if pth != "" {
+		cmd := exec.Command("/bin/sh", "-c", "apt-get update && apt-get install -y iptables xz-utils")
+		cmd.Stdin = os.Stdin
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Pdeathsig: syscall.SIGKILL,
+		}
+
+		return cmd.Run()
+	}
+
+	pth, _ = exec.LookPath("apk")
+	if pth != "" {
+		cmd := exec.Command("/bin/sh", "-c", "apk add --no-cache iptables xz")
+		cmd.Stdin = os.Stdin
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Pdeathsig: syscall.SIGKILL,
+		}
+
+		return cmd.Run()
+	}
+
+	// the container is not debian/ubuntu/alpine
+	log.WithField("command", "dockerd").Warn("Please install dockerd dependencies: iptables")
+	return nil
+}
+
+func installSlirp4netns() error {
+	return installBinary("slirp4netns", "/usr/bin/slirp4netns")
+}
+
+func installBinary(name, dst string) error {
+	binary, err := binaries.Open(name)
+	if err != nil {
+		return err
+	}
+	defer binary.Close()
+
+	file, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, binary)
+	if err != nil {
+		return err
+	}
+
+	return os.Chmod(dst, 0755)
 }

@@ -2,7 +2,7 @@
 # Licensed under the MIT License. See License-MIT.txt in the project root for license information.
 
 {{ $comp := .Values.components.wsProxy -}}
-{{- if not $comp.disabled -}}
+{{- if and (not $comp.disabled) (.Values.installNetworkPolicies) -}}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -20,8 +20,14 @@ spec:
   policyTypes:
   - Ingress
   ingress:
-  # Allow access to HTTP proxy port from everywhere
+  # Allow access to HTTP/HTTPS proxy ports from everywhere
   - ports:
     - protocol: TCP
       port: {{ $comp.ports.httpProxy.containerPort }}
+    - protocol: TCP
+      port: {{ $comp.ports.httpsProxy.containerPort }}
+    {{ if $comp.ports.wsManagerProxy }}
+    - protocol: TCP
+      port: {{ $comp.ports.wsManagerProxy.containerPort }}
+    {{ end }}
 {{ end }}

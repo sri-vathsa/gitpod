@@ -242,7 +242,7 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
             }
 
             await this.guardAccess({kind: "workspaceInstance", subject: instance, workspaceOwnerID: workspace.ownerId, workspaceIsShared: workspace.shareable || false}, "get");
-            await this.guardAccess({kind: "snapshot", subject: undefined, workspaceOwnerID: workspace.ownerId}, "create");
+            await this.guardAccess({kind: "snapshot", subject: undefined, workspaceOwnerID: workspace.ownerId, workspaceID: workspace.id }, "create");
 
             const client = await this.workspaceManagerClientProvider.get(instance.region);
             const request = new TakeSnapshotRequest();
@@ -299,8 +299,8 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
     async adminGetUsers(req: AdminGetListRequest<User>): Promise<AdminGetListResult<User>> {
         this.requireEELicense(Feature.FeatureAdminDashboard);
 
-        this.guardAdminAccess("adminGetUsers", {req}, Permission.ADMIN_USERS);
-        
+        await this.guardAdminAccess("adminGetUsers", {req}, Permission.ADMIN_USERS);
+
         const span = opentracing.globalTracer().startSpan("adminGetUsers");
         try {
             const res = await this.userDB.findAllUsers(req.offset, req.limit, req.orderBy, req.orderDir === "asc" ? "ASC" : "DESC", req.searchTerm);
@@ -317,7 +317,7 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
     async adminGetUser(id: string): Promise<User> {
         this.requireEELicense(Feature.FeatureAdminDashboard);
 
-        this.guardAdminAccess("adminGetUser", {id}, Permission.ADMIN_USERS);
+        await this.guardAdminAccess("adminGetUser", {id}, Permission.ADMIN_USERS);
 
         let result: User | undefined;
         const span = opentracing.globalTracer().startSpan("adminGetUser");
@@ -339,7 +339,7 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
     async adminBlockUser(req: AdminBlockUserRequest): Promise<User> {
         this.requireEELicense(Feature.FeatureAdminDashboard);
 
-        this.guardAdminAccess("adminBlockUser", {req}, Permission.ADMIN_USERS);
+        await this.guardAdminAccess("adminBlockUser", {req}, Permission.ADMIN_USERS);
 
         const span = opentracing.globalTracer().startSpan("adminBlockUser");
         try {
@@ -372,7 +372,7 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
     async adminDeleteUser(id: string): Promise<void> {
         this.requireEELicense(Feature.FeatureAdminDashboard);
 
-        this.guardAdminAccess("adminDeleteUser", {id}, Permission.ADMIN_USERS);
+        await this.guardAdminAccess("adminDeleteUser", {id}, Permission.ADMIN_USERS);
 
         const span = opentracing.globalTracer().startSpan("adminDeleteUser");
         try {
@@ -388,7 +388,7 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
     async adminModifyRoleOrPermission(req: AdminModifyRoleOrPermissionRequest): Promise<User> {
         this.requireEELicense(Feature.FeatureAdminDashboard);
 
-        this.guardAdminAccess("adminModifyRoleOrPermission", {req}, Permission.ADMIN_USERS);
+        await this.guardAdminAccess("adminModifyRoleOrPermission", {req}, Permission.ADMIN_USERS);
 
         const span = opentracing.globalTracer().startSpan("adminModifyRoleOrPermission");
         span.log(req);
@@ -424,7 +424,7 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
     async adminModifyPermanentWorkspaceFeatureFlag(req: AdminModifyPermanentWorkspaceFeatureFlagRequest): Promise<User> {
         this.requireEELicense(Feature.FeatureAdminDashboard);
 
-        this.guardAdminAccess("adminModifyPermanentWorkspaceFeatureFlag", {req}, Permission.ADMIN_USERS);
+        await this.guardAdminAccess("adminModifyPermanentWorkspaceFeatureFlag", {req}, Permission.ADMIN_USERS);
 
         const span = opentracing.globalTracer().startSpan("adminModifyPermanentWorkspaceFeatureFlag");
         span.log(req);
@@ -462,7 +462,7 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
     async adminGetWorkspaces(req: AdminGetWorkspacesRequest): Promise<AdminGetListResult<WorkspaceAndInstance>> {
         this.requireEELicense(Feature.FeatureAdminDashboard);
 
-        this.guardAdminAccess("adminGetWorkspaces", {req}, Permission.ADMIN_WORKSPACES);
+        await this.guardAdminAccess("adminGetWorkspaces", {req}, Permission.ADMIN_WORKSPACES);
 
         const span = opentracing.globalTracer().startSpan("adminGetWorkspaces");
         try {
@@ -478,7 +478,7 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
     async adminGetWorkspace(id: string): Promise<WorkspaceAndInstance> {
         this.requireEELicense(Feature.FeatureAdminDashboard);
 
-        this.guardAdminAccess("adminGetWorkspace", {id}, Permission.ADMIN_WORKSPACES);
+        await this.guardAdminAccess("adminGetWorkspace", {id}, Permission.ADMIN_WORKSPACES);
 
         let result: WorkspaceAndInstance | undefined;
         const span = opentracing.globalTracer().startSpan("adminGetWorkspace");
@@ -500,10 +500,32 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
     async adminForceStopWorkspace(id: string): Promise<void> {
         this.requireEELicense(Feature.FeatureAdminDashboard);
 
-        this.guardAdminAccess("adminForceStopWorkspace", {id}, Permission.ADMIN_WORKSPACES);
+        await this.guardAdminAccess("adminForceStopWorkspace", {id}, Permission.ADMIN_WORKSPACES);
 
         const span = opentracing.globalTracer().startSpan("adminForceStopWorkspace");
         await this.internalStopWorkspace({ span }, id, undefined,  StopWorkspacePolicy.IMMEDIATELY);
+    }
+
+    async adminRestoreSoftDeletedWorkspace(id: string): Promise<void> {
+        this.requireEELicense(Feature.FeatureAdminDashboard);
+
+        await this.guardAdminAccess("adminRestoreSoftDeletedWorkspace", {id}, Permission.ADMIN_WORKSPACES);
+
+        const span = opentracing.globalTracer().startSpan("adminRestoreSoftDeletedWorkspace");
+        await this.workspaceDb.trace({ span }).transaction(async db => {
+            const ws = await this.internalGetWorkspace(id, db);
+            if (!ws.softDeleted) {
+                return;
+            }
+            if (!!ws.contentDeletedTime) {
+                throw new ResponseError(ErrorCodes.NOT_FOUND, "The workspace content was already garbage-collected.");
+            }
+            // @ts-ignore
+            ws.softDeleted = null;
+            ws.softDeletedTime = '';
+            ws.pinned = true;
+            await db.store(ws);
+        });
     }
 
     protected async guardAdminAccess(method: string, params: any, requiredPermission: PermissionName) {
@@ -618,7 +640,7 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
     }
 
     async adminSetLicense(key: string): Promise<void> {
-        this.guardAdminAccess("adminGetWorkspaces", {key}, Permission.ADMIN_API);
+        await this.guardAdminAccess("adminGetWorkspaces", {key}, Permission.ADMIN_API);
 
         await this.licenseDB.store(uuidv4(), key);
         await this.licenseEvaluator.reloadLicense();

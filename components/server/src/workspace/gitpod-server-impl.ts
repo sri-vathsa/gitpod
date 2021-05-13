@@ -1,6 +1,6 @@
 /**
- * Copyright (c) 2020 Gitpod GmbH. All rights reserved.
- * Licensed under the GNU Affero General Public License (AGPL).
+* Copyright (c) 2020 Gitpod GmbH. All rights reserved.
+* Licensed under the GNU Affero General Public License (AGPL).
  * See License-AGPL.txt in the project root for license information.
  */
 
@@ -14,7 +14,7 @@ import { UserDB } from '@gitpod/gitpod-db/lib/user-db';
 import { UserMessageViewsDB } from '@gitpod/gitpod-db/lib/user-message-views-db';
 import { UserStorageResourcesDB } from '@gitpod/gitpod-db/lib/user-storage-resources-db';
 import { WorkspaceDB } from '@gitpod/gitpod-db/lib/workspace-db';
-import { AuthProviderEntry, AuthProviderInfo, Branding, CommitContext, Configuration, CreateWorkspaceMode, DisposableCollection, GetWorkspaceTimeoutResult, GitpodClient, GitpodServer, GitpodToken, GitpodTokenType, InstallPluginsParams, PermissionName, PortVisibility, PrebuiltWorkspace, PrebuiltWorkspaceContext, PreparePluginUploadParams, ResolvedPlugins, ResolvePluginsParams, SetWorkspaceTimeoutResult, StartPrebuildContext, StartWorkspaceResult, Terms, Token, UninstallPluginParams, User, UserEnvVar, UserEnvVarValue, UserInfo, UserMessage, WhitelistedRepository, Workspace, WorkspaceContext, WorkspaceCreationResult, WorkspaceImageBuild, WorkspaceInfo, WorkspaceInstance, WorkspaceInstancePort, WorkspaceInstanceUser, WorkspaceTimeoutDuration } from '@gitpod/gitpod-protocol';
+import { AuthProviderEntry, AuthProviderInfo, Branding, CommitContext, Configuration, CreateWorkspaceMode, DisposableCollection, GetWorkspaceTimeoutResult, GitpodClient, GitpodServer, GitpodToken, GitpodTokenType, InstallPluginsParams, PermissionName, PortVisibility, PrebuiltWorkspace, PrebuiltWorkspaceContext, PreparePluginUploadParams, ResolvedPlugins, ResolvePluginsParams, SetWorkspaceTimeoutResult, StartPrebuildContext, StartWorkspaceResult, Terms, Token, UninstallPluginParams, User, UserEnvVar, UserEnvVarValue, UserInfo, UserMessage, WhitelistedRepository, Workspace, WorkspaceContext, WorkspaceCreationResult, WorkspaceImageBuild, WorkspaceInfo, WorkspaceInstance, WorkspaceInstancePort, WorkspaceInstanceUser, WorkspaceTimeoutDuration, GuessGitTokenScopesParams, GuessedGitTokenScopes } from '@gitpod/gitpod-protocol';
 import { AccountStatement } from "@gitpod/gitpod-protocol/lib/accounting-protocol";
 import { AdminBlockUserRequest, AdminGetListRequest, AdminGetListResult, AdminGetWorkspacesRequest, AdminModifyPermanentWorkspaceFeatureFlagRequest, AdminModifyRoleOrPermissionRequest, WorkspaceAndInstance } from '@gitpod/gitpod-protocol/lib/admin-protocol';
 import { GetLicenseInfoResult, LicenseFeature, LicenseValidationResult } from '@gitpod/gitpod-protocol/lib/license-protocol';
@@ -33,6 +33,7 @@ import * as opentracing from 'opentracing';
 import { URL } from 'url';
 import * as uuidv4 from 'uuid/v4';
 import { Disposable, ResponseError } from 'vscode-jsonrpc';
+import { IAnalyticsWriter } from "@gitpod/gitpod-protocol/lib/util/analytics";
 import { AuthProviderService } from '../auth/auth-provider-service';
 import { HostContextProvider } from '../auth/host-context-provider';
 import { GuardedResource, ResourceAccessGuard, ResourceAccessOp } from '../auth/resource-access';
@@ -47,6 +48,7 @@ import { UserDeletionService } from '../user/user-deletion-service';
 import { UserService } from '../user/user-service';
 import { IClientDataPrometheusAdapter } from './client-data-prometheus-adapter';
 import { ContextParser } from './context-parser-service';
+import { GitTokenScopeGuesser } from "./git-token-scope-guesser";
 import { MessageBusIntegration } from './messagebus-integration';
 import { WorkspaceDeletionService } from './workspace-deletion-service';
 import { WorkspaceFactory } from './workspace-factory';
@@ -74,6 +76,7 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
     @inject(UserMessageViewsDB) protected readonly userMessageViewsDB: UserMessageViewsDB;
     @inject(UserStorageResourcesDB) protected readonly userStorageResourcesDB: UserStorageResourcesDB;
     @inject(UserDeletionService) protected readonly userDeletionService: UserDeletionService;
+    @inject(IAnalyticsWriter) protected readonly analytics: IAnalyticsWriter;
     @inject(AuthorizationService) protected readonly authorizationService: AuthorizationService;
 
     @inject(AppInstallationDB) protected readonly appInstallationDB: AppInstallationDB;
@@ -87,6 +90,8 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
     @inject(TermsProvider) protected readonly termsProvider: TermsProvider;
 
     @inject(BlobServiceClient) protected readonly blobServiceClient: BlobServiceClient;
+
+    @inject(GitTokenScopeGuesser) protected readonly gitTokenScopeGuesser: GitTokenScopeGuesser;
 
     /** Id the uniquely identifies this server instance */
     public readonly uuid: string = uuidv4();
@@ -158,7 +163,7 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
     /**
      * We don't need to/want to publish all internal details we maintain about a workspace instance.
      * This function removes instance details we do not want to share with the dashboard/Theia/potential attackers.
-     * 
+     *
      * @param wsi the workspace instance shape we want to censor
      */
     protected censorInstance<T extends WorkspaceInstance | undefined>(wsi: T): T {
@@ -176,13 +181,14 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
         // we might want to share that in the future, but for the time being there's no need
         delete (res.configuration);
         // internal operation detail
+        // @ts-ignore
         delete (res.workspaceImage);
 
         return res;
     }
 
     protected checkUser(methodName?: string, logPayload?: {}): User {
-        if (this.setupRequired) {
+        if (this.showSetupCondition?.value) {
             throw new ResponseError(ErrorCodes.SETUP_REQUIRED, 'Setup required.');
         }
         if (!this.user) {
@@ -222,12 +228,19 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
         return this.checkUser("getLoggedInUser");
     }
 
-    protected setupRequired: boolean = false;
+    protected showSetupCondition: { value: boolean } | undefined = undefined;
     protected async doUpdateUser(): Promise<void> {
-        const hasAnyStaticProviders = this.hostContextProvider.getAll().some(hc => hc.authProvider.config.builtin === true);
-        if (!hasAnyStaticProviders) {
-            const userCount = await this.userDB.getUserCount();
-            this.setupRequired = userCount === 0;
+
+        // execute the check for the setup to be shown until the setup is not required.
+        // cf. evaluation of the condition in `checkUser`
+        if (!this.showSetupCondition || this.showSetupCondition.value === true) {
+            const hasAnyStaticProviders = this.hostContextProvider.getAll().some(hc => hc.authProvider.config.builtin === true);
+            if (!hasAnyStaticProviders) {
+                const userCount = await this.userDB.getUserCount();
+                this.showSetupCondition = { value: userCount === 0 };
+            } else {
+                this.showSetupCondition = { value: false };
+            }
         }
 
         if (this.user) {
@@ -272,6 +285,9 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
         const hostContexts = this.hostContextProvider.getAll();
         const authProviders = hostContexts.map(hc => hc.authProvider.info);
 
+        const isNotHidden = (info: AuthProviderInfo) => !info.hiddenOnDashboard;
+        const isVerified = (info: AuthProviderInfo) => info.verified;
+
         // if no user session is available, compute public information only
         if (!this.user) {
             const toPublic = (info: AuthProviderInfo) => <AuthProviderInfo>{
@@ -282,7 +298,7 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
                 icon: info.icon,
                 description: info.description
             }
-            const result = authProviders.map(toPublic);
+            const result = authProviders.filter(isNotHidden).filter(isVerified).map(toPublic);
             return result;
         }
 
@@ -294,7 +310,13 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
                 result.push({ ...info, isReadonly: identity.readonly });
                 continue;
             }
-            result.push(info);
+            if (info.ownerId === this.user.id) {
+                result.push(info);
+                continue;
+            }
+            if (isNotHidden(info) && isVerified(info)) {
+                result.push(info);
+            }
         }
         return result;
     }
@@ -364,9 +386,9 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
 
             const latestInstance = await this.workspaceDb.trace({}).findCurrentInstance(id);
             if (!!latestInstance) {
-                await this.guardAccess({ 
-                    kind: "workspaceInstance", 
-                    subject: latestInstance, 
+                await this.guardAccess({
+                    kind: "workspaceInstance",
+                    subject: latestInstance,
                     workspaceOwnerID: workspace.ownerId,
                     workspaceIsShared: workspace.shareable || false,
                 }, "get");
@@ -877,23 +899,22 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
 
     /**
      * Extension point for implementing eligibility checks. Throws a ResponseError if not eligible.
-     * @param ctx 
-     * @param user 
-     * @param runningInstances 
+     * @param ctx
+     * @param user
+     * @param runningInstances
      */
     protected async mayStartWorkspace(ctx: TraceContext, user: User, runningInstances: Promise<WorkspaceInstance[]>): Promise<void> {
     }
 
     /**
      * Extension point for implementing eligibility checks. Throws a ResponseError if not eligible.
-     * @param user 
-     * @param context 
+     * @param user
+     * @param context
      */
     protected async mayOpenContext(user: User, context: WorkspaceContext): Promise<void> {
     }
 
     public async mayAccessPrivateRepo(): Promise<boolean> {
-        // TODO remove after IO-split
         return true;
     }
 
@@ -1201,7 +1222,7 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
         const user = this.checkAndBlockUser();
 
         if (!this.env.githubAppEnabled) {
-            throw new ResponseError(ErrorCodes.NOT_FOUND, 'User is not authenticated. Please login.');
+            throw new ResponseError(ErrorCodes.NOT_FOUND, 'No GitHub app enabled for this installation. Please talk to your administrator.');
         }
 
         await this.appInstallationDB.recordNewInstallation('github', 'user', installationId, user.id);
@@ -1254,18 +1275,40 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
         return layoutData.layoutData;
     }
 
+    // Get environment variables (filter by repository pattern precedence)
     async getEnvVars(): Promise<UserEnvVarValue[]> {
-        // Note: this operation is per-user only, hence needs no resource guard
-
         const user = this.checkUser("getEnvVars");
-        return (await this.userDB.getEnvVars(user.id)).map(v => {
-            return {
-                id: v.id,
-                name: v.name,
-                value: v.value,
-                repositoryPattern: v.repositoryPattern,
+        const result = new Map<string, { value: UserEnvVar, score: number }>();
+        for (const value of await this.userDB.getEnvVars(user.id)) {
+            if (!await this.resourceAccessGuard.canAccess({ kind: 'envVar', subject: value }, 'get')) {
+                continue;
             }
-        });
+            const score = UserEnvVar.score(value);
+            const current = result.get(value.name);
+            if (!current || score < current.score) {
+                result.set(value.name, { value, score });
+            }
+        }
+        return [...result.values()]
+            .map(({ value: { id, name, value, repositoryPattern } }) => ({ id, name, value, repositoryPattern }));
+    }
+
+    // Get all environment variables (unfiltered)
+    async getAllEnvVars(): Promise<UserEnvVarValue[]> {
+        const user = this.checkUser("getAllEnvVars");
+        const result: UserEnvVarValue[] = [];
+        for (const value of await this.userDB.getEnvVars(user.id)) {
+            if (!await this.resourceAccessGuard.canAccess({ kind: 'envVar', subject: value }, 'get')) {
+                continue;
+            }
+            result.push({
+                id: value.id,
+                name: value.name,
+                value: value.value,
+                repositoryPattern: value.repositoryPattern,
+            });
+        }
+        return result;
     }
 
     async setEnvVar(variable: UserEnvVarValue): Promise<void> {
@@ -1274,6 +1317,13 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
 
         variable.repositoryPattern = UserEnvVar.normalizeRepoPattern(variable.repositoryPattern);
         const existingVars = (await this.userDB.getEnvVars(user.id)).filter(v => !v.deleted);
+
+        const existingVar = existingVars.find(v => v.name == variable.name && v.repositoryPattern == variable.repositoryPattern);
+        if (!!existingVar) {
+            // overwrite existing variable rather than introduce a duplicate
+            variable.id = existingVar.id;
+        }
+
         if (!variable.id) {
             // this is a new variable - make sure the user does not have too many (don't DOS our database using gp env)
             const varCount = existingVars.length;
@@ -1282,17 +1332,14 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
             }
         }
 
-        const existingVar = existingVars.find(v => v.name == variable.name && v.repositoryPattern == variable.repositoryPattern);
-        if (!!existingVar) {
-            // overwrite existing variable rather than introduce a duplicate
-            variable.id = existingVar.id;
-        }
-
         const envvar: UserEnvVar = {
             ...variable,
             id: variable.id || uuidv4(),
             userId: user.id,
         };
+        await this.guardAccess({ kind: 'envVar', subject: envvar }, typeof variable.id === 'string' ? 'update' : 'create');
+        this.analytics.track({ event: "envvar-set", userId: this.user?.id || "" });
+
         await this.userDB.setEnvVar(envvar);
     }
 
@@ -1300,8 +1347,15 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
         // Note: this operation is per-user only, hence needs no resource guard
         const user = this.checkUser("deleteEnvVar");
 
+        if (!variable.id && variable.name && variable.repositoryPattern) {
+            variable.repositoryPattern = UserEnvVar.normalizeRepoPattern(variable.repositoryPattern);
+            const existingVars = (await this.userDB.getEnvVars(user.id)).filter(v => !v.deleted);
+            const existingVar = existingVars.find(v => v.name == variable.name && v.repositoryPattern == variable.repositoryPattern);
+            variable.id = existingVar?.id;
+        }
+
         if (!variable.id) {
-            throw new ResponseError(ErrorCodes.NOT_FOUND, "Missing ID field")
+            throw new ResponseError(ErrorCodes.NOT_FOUND, `cannot delete '${variable.name}' in scope '${variable.repositoryPattern}'`)
         }
 
         const envvar: UserEnvVar = {
@@ -1309,6 +1363,9 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
             id: variable.id!,
             userId: user.id,
         };
+        await this.guardAccess({ kind: 'envVar', subject: envvar }, 'delete');
+        this.analytics.track({ event: "envvar-deleted", userId: this.user?.id || "" });
+
         await this.userDB.deleteEnvVar(envvar);
     }
 
@@ -1429,6 +1486,11 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
         return this.pluginService.uninstallUserPlugin(userId, params);
     }
 
+    async guessGitTokenScopes(params: GuessGitTokenScopesParams): Promise<GuessedGitTokenScopes> {
+        const authProviders = await this.getAuthProviders()
+        return this.gitTokenScopeGuesser.guessGitTokenScopes(authProviders.find(p => p.host == params.host), params);
+    }
+
     async adminGetUsers(req: AdminGetListRequest<User>): Promise<AdminGetListResult<User>> {
         throw new ResponseError(ErrorCodes.EE_FEATURE, `Admin support is implemented in Gitpod's Enterprise Edition`);
     }
@@ -1465,6 +1527,10 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
         throw new ResponseError(ErrorCodes.EE_FEATURE, `Admin support is implemented in Gitpod's Enterprise Edition`);
     }
 
+    async adminRestoreSoftDeletedWorkspace(id: string): Promise<void> {
+        throw new ResponseError(ErrorCodes.EE_FEATURE, `Admin support is implemented in Gitpod's Enterprise Edition`);
+    }
+
     async adminSetLicense(key: string): Promise<void> {
         throw new ResponseError(ErrorCodes.EE_FEATURE, `Admin support is implemented in Gitpod's Enterprise Edition`);
     }
@@ -1497,13 +1563,7 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
     }
 
     async getOwnAuthProviders(): Promise<AuthProviderEntry[]> {
-        const redacted = (entry: AuthProviderEntry) => ({
-            ...entry,
-            oauth: {
-                ...entry.oauth,
-                clientSecret: "redacted"
-            }
-        });
+        const redacted = (entry: AuthProviderEntry) => AuthProviderEntry.redact(entry);
         let userId: string;
         try {
             userId = this.checkAndBlockUser("getOwnAuthProviders").id;
@@ -1530,7 +1590,7 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
     //   for example [foo.bar/gitlab]
     protected validHostNameRegexp = /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)+([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])(\/([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9]))?$/;
 
-    async updateOwnAuthProvider({ entry }: GitpodServer.UpdateOwnAuthProviderParams): Promise<void> {
+    async updateOwnAuthProvider({ entry }: GitpodServer.UpdateOwnAuthProviderParams): Promise<AuthProviderEntry> {
         let userId: string;
         try {
             userId = this.checkAndBlockUser("updateOwnAuthProvider").id;
@@ -1558,10 +1618,11 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
                 if (hostContext) {
                     const builtInExists = hostContext.authProvider.config.ownerId === undefined;
                     log.debug(`Attempt to override existing auth provider.`, { entry, safeProvider, builtInExists });
-                    throw new Error("Provider for host has already been registered.");
+                    throw new Error("Provider for this host already exists.");
                 }
             }
-            await this.authProviderService.updateAuthProvider(safeProvider);
+            const result = await this.authProviderService.updateAuthProvider(safeProvider);
+            return AuthProviderEntry.redact(result)
         } catch (error) {
             const message = error && error.message ? error.message : "Failed to update the provider.";
             throw new ResponseError(ErrorCodes.CONFLICT, message);
@@ -1576,6 +1637,8 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
         } : <AuthProviderEntry.NewEntry>{
             host: entry.host,
             type: entry.type,
+            clientId: entry.clientId,
+            clientSecret: entry.clientSecret,
             ownerId: entry.ownerId,
         }
         return safeEntry;
@@ -1621,6 +1684,9 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
         throw new ResponseError(ErrorCodes.SAAS_FEATURE, `Not implemented in this version`);
     }
     async adminAddStudentEmailDomain(userId: string, domain: string): Promise<void> {
+        throw new ResponseError(ErrorCodes.SAAS_FEATURE, `Not implemented in this version`);
+    }
+    async adminGrantExtraHours(userId: string, extraHours: number): Promise<void> {
         throw new ResponseError(ErrorCodes.SAAS_FEATURE, `Not implemented in this version`);
     }
     async isStudent(): Promise<boolean> {
@@ -1680,7 +1746,7 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
     async tsAddSlots(teamSubscriptionId: string, quantity: number): Promise<void> {
         throw new ResponseError(ErrorCodes.SAAS_FEATURE, `Not implemented in this version`);
     }
-    async tsAssignSlot(teamSubscriptionId: string, teamSubscriptionSlotId: string, identityStr: string|undefined): Promise<void> {
+    async tsAssignSlot(teamSubscriptionId: string, teamSubscriptionSlotId: string, identityStr: string | undefined): Promise<void> {
         throw new ResponseError(ErrorCodes.SAAS_FEATURE, `Not implemented in this version`);
     }
     async tsReassignSlot(teamSubscriptionId: string, teamSubscriptionSlotId: string, newIdentityStr: string): Promise<void> {

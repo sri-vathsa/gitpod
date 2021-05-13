@@ -46,24 +46,20 @@ export class Env extends AbstractComponentEnv {
     })()
 
     readonly previewFeatureFlags: NamedWorkspaceFeatureFlag[] = (() => {
-        const v = process.env.EXPERIMENTAL_FEATURE_FLAGS;
-        return !!v ? JSON.parse(v) : [];
+        const value = process.env.EXPERIMENTAL_FEATURE_FLAGS;
+        if (!value) {
+          return [];
+        }
+        const flags = JSON.parse(value);
+        if (!Array.isArray(flags)) {
+          throw new Error(`EXPERIMENTAL_FEATURE_FLAGS should be an Array: ${value}`);
+        }
+        return flags;
     })();
 
     readonly gitpodRegion: string = process.env.GITPOD_REGION || 'unknown';
 
     readonly sessionMaxAgeMs: number = Number.parseInt(process.env.SESSION_MAX_AGE_MS || '259200000' /* 3 days */, 10);
-
-    readonly storageClient: string = process.env.GITPOD_STORAGE_CLIENT || 'gcloud';
-    readonly gcloudCredentialsFile = process.env.GCLOUD_CREDENTIALS_FILE || 'not-available';
-    readonly gcloudProjectID = process.env.GCLOUD_PROJECT_ID || 'not-available';
-    readonly gcloudRegion = process.env.GCLOUD_REGION || 'not-available';
-    readonly minioEndPoint?: string = process.env.MINIO_END_POINT;
-    readonly minioPort?: string = process.env.MINIO_PORT;
-    readonly minioAccessKey?: string = process.env.MINIO_ACCESS_KEY;
-    readonly minioSecretKey?: string = process.env.MINIO_SECRET_KEY;
-    readonly minioRegion?: string = process.env.MINIO_REGION || process.env.GITPOD_REGION;
-    readonly minioUseSSL: boolean = process.env.MINIO_USE_SSL == "true";
 
     readonly githubAppEnabled: boolean = process.env.GITPOD_GITHUB_APP_ENABLED == "true";
     readonly githubAppAppID: number = process.env.GITPOD_GITHUB_APP_ID ? parseInt(process.env.GITPOD_GITHUB_APP_ID, 10) : 0;
@@ -77,7 +73,7 @@ export class Env extends AbstractComponentEnv {
 
     readonly daysBeforeGarbageCollection: number = parseInt(process.env.GITPOD_DAYS_BEFORE_GARBAGE_COLLECTION || '14', 10);
     readonly daysBeforeGarbageCollectingPrebuilds: number = parseInt(process.env.GITPOD_DAYS_BEFORE_GARBAGE_COLLECTING_PREBUILDS || '7', 10);
-    readonly garbageCollectionStartDate: number = process.env.GITPOD_GARBAGE_COLLECTION_START_DATE ? 
+    readonly garbageCollectionStartDate: number = process.env.GITPOD_GARBAGE_COLLECTION_START_DATE ?
         new Date(process.env.GITPOD_GARBAGE_COLLECTION_START_DATE).getTime():
         Date.now();
     readonly garbageCollectionLimit: number = parseInt(process.env.GITPOD_GARBAGE_COLLECTION_LIMIT || '1000', 10);
@@ -88,6 +84,8 @@ export class Env extends AbstractComponentEnv {
     readonly workspaceDeletionLimit: number = parseInt(process.env.GITPOD_WORKSPACE_DELETION_LIMIT || '1000', 10);
 
     readonly devBranch = process.env.DEV_BRANCH || '';
+
+    readonly enableLocalApp = process.env.ENABLE_LOCAL_APP === "true";
 
     readonly authProviderConfigs = this.parseAuthProviderParamss();
 
@@ -138,8 +136,25 @@ export class Env extends AbstractComponentEnv {
     protected parseBool(name: string) {
         return getEnvVar(name, 'false') === 'true';
     }
-    
+
     readonly blockNewUsers: boolean = this.parseBool("BLOCK_NEW_USERS");
+    readonly blockNewUsersPassList: string[] = (() => {
+        const l = process.env.BLOCK_NEW_USERS_PASSLIST;
+        if (!l) {
+            return [];
+        }
+        try {
+            const res = JSON.parse(l);
+            if (!Array.isArray(res) || res.some(e => typeof e !== 'string')) {
+                console.error("BLOCK_NEW_USERS_PASSLIST is not an array of string");
+                return [];
+            }
+            return res;
+        } catch (err) {
+            console.error("cannot parse BLOCK_NEW_USERS_PASSLIST", err);
+            return [];
+        }
+    })();
     readonly makeNewUsersAdmin: boolean = this.parseBool("MAKE_NEW_USERS_ADMIN");
     readonly disableDynamicAuthProviderLogin: boolean = this.parseBool("DISABLE_DYNAMIC_AUTH_PROVIDER_LOGIN");
 

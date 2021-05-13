@@ -21,9 +21,9 @@ export class WorkspaceDeletionService {
     /**
      * This method does nothing beyond marking the given workspace as 'softDeleted' with the given cause and sets the 'softDeletedTime' to now.
      * The actual deletion happens as part of the regular workspace garbage collection.
-     * @param ctx 
-     * @param ws 
-     * @param softDeleted 
+     * @param ctx
+     * @param ws
+     * @param softDeleted
      */
     public async softDeleteWorkspace(ctx: TraceContext, ws: WorkspaceAndOwner, softDeleted: WorkspaceSoftDeletion): Promise<void> {
         await this.db.trace(ctx).updatePartial(ws.id, {
@@ -34,8 +34,8 @@ export class WorkspaceDeletionService {
 
     /**
      * This method garbageCollects a workspace. It deletes its contents and sets the workspaces 'contentDeletedTime'
-     * @param ctx 
-     * @param ws 
+     * @param ctx
+     * @param ws
      */
     public async garbageCollectWorkspace(ctx: TraceContext, ws: WorkspaceOwnerAndSoftDeleted): Promise<boolean> {
         const span = TraceContext.startSpan("garbageCollectWorkspace", ctx);
@@ -54,8 +54,8 @@ export class WorkspaceDeletionService {
     }
 
     /**
-     * @param ctx 
-     * @param wsAndOwner 
+     * @param ctx
+     * @param wsAndOwner
      */
     public async garbageCollectPrebuild(ctx: TraceContext, ws: WorkspaceAndOwner): Promise<boolean> {
         const span = TraceContext.startSpan("garbageCollectPrebuild", ctx);
@@ -64,7 +64,7 @@ export class WorkspaceDeletionService {
             const successfulDeleted = await this.deleteWorkspaceStorage(ws, true);
             const now = new Date().toISOString();
             // Note: soft & content deletion happens at the same time, because prebuilds are reproducible so there's no need for the extra time span.
-            await this.db.trace({span}).updatePartial(ws.id, { 
+            await this.db.trace({span}).updatePartial(ws.id, {
                 contentDeletedTime: now,
                 softDeletedTime: now,
                 softDeleted: 'gc'
@@ -80,30 +80,13 @@ export class WorkspaceDeletionService {
 
     /**
      * Performs the actual deletion of a workspace's backups (and optionally, snapshots). It:
-     *  - returns false if there was not object to delete at all (in case there have been no backups yet, for example)
      *  - throws an error if something went wrong during deletion
      *  - returns true in case of successful deletion
-     * @param ws 
-     * @param includeSnapshots 
+     * @param ws
+     * @param includeSnapshots
      */
     protected async deleteWorkspaceStorage(ws: WorkspaceAndOwner, includeSnapshots: boolean): Promise<boolean> {
-        let prefix = `workspaces/${ws.id}`;
-
-        try {
-            const bucketName = this.storageClient.bucketName(ws.ownerId);
-            if (includeSnapshots) {
-                await this.storageClient.deleteObjects(bucketName, prefix);
-            } else {
-                await this.storageClient.deleteObjects(bucketName, `${prefix}/full.tar`);
-                await this.storageClient.deleteObjects(bucketName, `${prefix}/trail-`);
-            }
-            return true;
-        } catch (err) {
-            if ('code' in err && err.code == 404) {
-                return false;
-            } else {
-                throw err;
-            }
-        }
+        await this.storageClient.deleteWorkspaceBackups(ws.ownerId, ws.id, includeSnapshots);
+        return true;
     }
 }

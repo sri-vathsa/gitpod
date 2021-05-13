@@ -27,7 +27,6 @@
                 "gitpod/servicePrefix": "foobarservice",
                 "gitpod/traceid": "",
                 "gitpod/url": "test-foobarservice-gitpod.io",
-                "gitpod/withUsernamespace": "true",
                 "prometheus.io/path": "/metrics",
                 "prometheus.io/port": "23000",
                 "prometheus.io/scrape": "true",
@@ -41,13 +40,6 @@
                     "hostPath": {
                         "path": "/tmp/workspaces/test",
                         "type": "DirectoryOrCreate"
-                    }
-                },
-                {
-                    "name": "dev-net-tun",
-                    "hostPath": {
-                        "path": "/dev/net/tun",
-                        "type": "File"
                     }
                 },
                 {
@@ -153,10 +145,6 @@
                             "name": "vol-this-workspace",
                             "mountPath": "/workspace",
                             "mountPropagation": "HostToContainer"
-                        },
-                        {
-                            "name": "dev-net-tun",
-                            "mountPath": "/dev/net/tun"
                         },
                         {
                             "name": "daemon-mount",

@@ -4,6 +4,7 @@
  * See License-AGPL.txt in the project root for license information.
  */
 
+import * as crypto from 'crypto';
 import { inject, injectable } from "inversify";
 import { UserDB } from '@gitpod/gitpod-db/lib/user-db';
 import * as express from 'express';
@@ -20,14 +21,18 @@ import { parseWorkspaceIdFromHostname } from "@gitpod/gitpod-protocol/lib/util/p
 import { SessionHandlerProvider } from "../session-handler";
 import { URL } from 'url';
 import { saveSession, getRequestingClientInfo, destroySession } from "../express-util";
-import { User } from "@gitpod/gitpod-protocol";
+import { GitpodToken, GitpodTokenType, User } from "@gitpod/gitpod-protocol";
 import { HostContextProvider } from "../auth/host-context-provider";
 import { AuthFlow } from "../auth/auth-provider";
 import { LoginCompletionHandler } from "../auth/login-completion-handler";
+import { IAnalyticsWriter } from "@gitpod/gitpod-protocol/lib/util/analytics";
 import { TosCookie } from "./tos-cookie";
 import { TosFlow } from "../terms/tos-flow";
 import { increaseLoginCounter } from '../../src/prometheus-metrics';
 import * as uuidv4 from 'uuid/v4';
+import { DBUser } from "@gitpod/gitpod-db";
+import { ScopedResourceGuard } from "../auth/resource-access";
+import { OneTimeSecretServer } from '../one-time-secret-server';
 
 @injectable()
 export class UserController {
@@ -41,8 +46,10 @@ export class UserController {
     @inject(UserService) protected readonly userService: UserService;
     @inject(WorkspacePortAuthorizationService) protected readonly workspacePortAuthService: WorkspacePortAuthorizationService;
     @inject(HostContextProvider) protected readonly hostContextProvider: HostContextProvider;
+    @inject(IAnalyticsWriter) protected readonly analytics: IAnalyticsWriter;
     @inject(SessionHandlerProvider) protected readonly sessionHandlerProvider: SessionHandlerProvider;
     @inject(LoginCompletionHandler) protected readonly loginCompletionHandler: LoginCompletionHandler;
+    @inject(OneTimeSecretServer) protected readonly otsServer: OneTimeSecretServer;
 
     get apiRouter(): express.Router {
         const router = express.Router();
@@ -218,6 +225,50 @@ export class UserController {
             });
             res.sendStatus(200);
         });
+        if (this.env.enableLocalApp) {
+            router.get("/auth/local-app", async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+                if (!req.isAuthenticated() || !User.is(req.user)) {
+                    res.sendStatus(401);
+                    return;
+                }
+
+                const user = req.user as User;
+                if (user.blocked) {
+                    res.sendStatus(403);
+                    return;
+                }
+
+                const rt = req.query.returnTo;
+                if (!rt || !rt.startsWith("localhost:")) {
+                    log.error(`auth/local-app: invalid returnTo URL: "${rt}"`)
+                    res.sendStatus(400);
+                    return;
+                }
+
+                const token = crypto.randomBytes(30).toString('hex');
+                const tokenHash = crypto.createHash('sha256').update(token, 'utf8').digest("hex");
+                const dbToken: GitpodToken & { user: DBUser } = {
+                    tokenHash,
+                    name: `local-app`,
+                    type: GitpodTokenType.MACHINE_AUTH_TOKEN,
+                    user: req.user as DBUser,
+                    scopes: [
+                        "function:getWorkspaces",
+                        "function:listenForWorkspaceInstanceUpdates",
+                        "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "workspace", subjectID: "*", operations: ["get"]}),
+                        "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "workspaceInstance", subjectID: "*", operations: ["get"]}),
+                    ],
+                    created: new Date().toISOString(),
+                };
+                await this.userDb.storeGitpodToken(dbToken);
+
+                const otsExpirationTime = new Date();
+                otsExpirationTime.setMinutes(otsExpirationTime.getMinutes() + 2);
+                const ots = await this.otsServer.serve({}, token, otsExpirationTime);
+
+                res.redirect(`http://${rt}/?ots=${encodeURI(ots.token)}`);
+            });
+        }
         router.get("/auth/workspace", async (req: express.Request, res: express.Response, next: express.NextFunction) => {
             if (!req.isAuthenticated() || !User.is(req.user)) {
                 res.sendStatus(401);
@@ -460,6 +511,7 @@ export class UserController {
 
         await this.userService.updateUserEnvVarsOnLogin(user, envVars);
         await this.userService.acceptCurrentTerms(user);
+        this.analytics.identify({ anonymousId: req.sessionID || "unknown", userId: user.id, });
         await this.loginCompletionHandler.complete(req, res, { user, returnToUrl: returnTo, authHost: host });
     }
 

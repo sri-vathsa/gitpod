@@ -13,13 +13,12 @@ import { AuthProviderInfo, Identity, Token, User } from '@gitpod/gitpod-protocol
 import { log, LogContext } from '@gitpod/gitpod-protocol/lib/util/logging';
 import fetch from "node-fetch";
 import { oauth2tokenCallback, OAuth2 } from 'oauth';
-import { format as formatURL, URL } from 'url';
+import { URL } from 'url';
 import { runInNewContext } from "vm";
 import { AuthFlow, AuthProvider } from "../auth/auth-provider";
 import { AuthProviderParams, AuthUserSetup } from "../auth/auth-provider";
-import { AuthException, SelectAccountException } from "../auth/errors";
+import { AuthException, EmailAddressAlreadyTakenException, SelectAccountException } from "../auth/errors";
 import { GitpodCookie } from "./gitpod-cookie";
-import { SelectAccountCookie } from "../user/select-account-cookie";
 import { Env } from "../env";
 import { getRequestingClientInfo } from "../express-util";
 import { TokenProvider } from '../user/token-provider';
@@ -64,7 +63,6 @@ export class GenericAuthProvider implements AuthProvider {
     @inject(UserDB) protected userDb: UserDB;
     @inject(Env) protected env: Env;
     @inject(GitpodCookie) protected gitpodCookie: GitpodCookie;
-    @inject(SelectAccountCookie) protected selectAccountCookie: SelectAccountCookie;
     @inject(UserService) protected readonly userService: UserService;
     @inject(AuthProviderService) protected readonly authProviderService: AuthProviderService;
     @inject(LoginCompletionHandler) protected readonly loginCompletionHandler: LoginCompletionHandler;
@@ -286,20 +284,28 @@ export class GenericAuthProvider implements AuthProvider {
             return;
         }
 
+        if (authFlow.host !== this.host) {
+            increaseLoginCounter("failed", this.host);
+
+            log.error(cxt, `(${strategyName}) Host does not match.`, { request, clientInfo });
+            response.redirect(this.getSorryUrl(`Host does not match.`));
+            return;
+        }
+
         const defaultLogPayload = { authFlow, clientInfo, authProviderId, request };
 
         // check OAuth2 errors
-        const error = new URL(formatURL({ protocol: request.protocol, host: request.get('host'), pathname: request.originalUrl })).searchParams.get("error");
+        const callbackParams = new URL(`https://anyhost${request.originalUrl}`).searchParams;
+        const error = callbackParams.get("error");
+        const description: string | null = callbackParams.get("error_description");
+
         if (error) { // e.g. "access_denied"
             // Clean up the session
             await AuthFlow.clear(request.session);
             await TosFlow.clear(request.session);
 
             increaseLoginCounter("failed", this.host);
-
-            log.info(cxt, `(${strategyName}) Received OAuth2 error, thus redirecting to /sorry (${error})`, { ...defaultLogPayload, requestUrl: request.originalUrl });
-            response.redirect(this.getSorryUrl(`OAuth2 error. (${error})`));
-            return;
+            return this.sendCompletionRedirectWithError(response, { error, description });
         }
 
         let result: Parameters<VerifyCallback>;
@@ -339,10 +345,10 @@ export class GenericAuthProvider implements AuthProvider {
             await TosFlow.clear(request.session);
 
             if (SelectAccountException.is(err)) {
-                this.selectAccountCookie.set(response, err.payload);
-                const url = this.env.hostUrl.with({ pathname: '/select-account' }).toString();
-                response.redirect(url);
-                return;
+                return this.sendCompletionRedirectWithError(response, err.payload);
+            }
+            if (EmailAddressAlreadyTakenException.is(err)) {
+                return this.sendCompletionRedirectWithError(response, { error: "email_taken" });
             }
 
             let message = 'Authorization failed. Please try again.';
@@ -382,6 +388,13 @@ export class GenericAuthProvider implements AuthProvider {
                 await this.loginCompletionHandler.complete(request, response, { user, returnToUrl: returnTo, authHost: host, elevateScopes });
             }
         }
+    }
+
+    protected sendCompletionRedirectWithError(response: express.Response, error: object): void {
+        log.info(`(${this.strategyName}) Send completion redirect with error`, { error });
+
+        const url = this.env.hostUrl.with({ pathname: '/complete-auth', search: "message=error:" + Buffer.from(JSON.stringify(error), "utf-8").toString('base64') }).toString();
+        response.redirect(url);
     }
 
     /**
@@ -424,7 +437,22 @@ export class GenericAuthProvider implements AuthProvider {
                 }
             } else {
                 // no user session present, let's initiate a login
-                currentGitpodUser = await this.userService.findUserForLogin({ candidate, primaryEmail });
+                currentGitpodUser = await this.userService.findUserForLogin({ candidate });
+
+                if (!currentGitpodUser) {
+
+                    // signup new accounts with email adresses already taken is disallowed
+                    const existingUserWithSameEmail = (await this.userDb.findUsersByEmail(primaryEmail))[0];
+                    if (existingUserWithSameEmail) {
+                        try {
+                            await this.userService.asserNoAccountWithEmail(primaryEmail);
+                        } catch (error) {
+                            log.warn(`Login attempt with matching email address.`, { ...defaultLogPayload, authUser, candidate, clientInfo });
+                            done(error, undefined);
+                            return;
+                        }
+                    }
+                }
             }
 
             const token = this.createToken(this.tokenUsername, accessToken, refreshToken, currentScopes, tokenResponse.expires_in);
@@ -446,6 +474,8 @@ export class GenericAuthProvider implements AuthProvider {
                     elevateScopes
                 }
             } else {
+                const termsAcceptanceRequired = await this.userService.checkTermsAcceptanceRequired({ config, identity: candidate });
+
                 // `checkSignUp` might throgh `AuthError`s with the intention to block the signup process.
                 await this.userService.checkSignUp({ config, identity: candidate });
 
@@ -459,7 +489,8 @@ export class GenericAuthProvider implements AuthProvider {
                     additionalIdentity: githubIdentity,
                     additionalToken: githubToken,
                     authHost: this.host,
-                    isBlocked
+                    isBlocked,
+                    termsAcceptanceRequired
                 }
             }
             done(undefined, currentGitpodUser || candidate, flowContext);

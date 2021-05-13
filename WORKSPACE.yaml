@@ -2,19 +2,20 @@
 defaultTarget: components:all
 defaultArgs:
   coreYarnLockBase: ../..
+  npmPublishTrigger: "false"
   publishToNPM: true
 
-defaultVariant: 
+defaultVariant:
   config:
     go:
-      lintCommand: ["golangci-lint", "run", "--disable", "govet,typecheck"]
+      lintCommand: ["golangci-lint", "run", "--disable", "govet,errcheck,typecheck,staticcheck", "--allow-parallel-runners"]
+      buildFlags: ["-trimpath", "-ldflags='-buildid= -w -s'"]
 
 variants:
 - name: oss
   components:
     exclude:
       - components/ee/ws-scheduler
-      - components/ee/cerc
   srcs:
     exclude:
     - "**/ee"

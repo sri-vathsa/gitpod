@@ -1,19 +1,19 @@
 <p align="center">
   <a href="https://www.gitpod.io">
-    <img src="https://raw.githubusercontent.com/gitpod-io/gitpod/master/components/dashboard/public/images/gitpod.svg" height="60">
+    <img src="https://raw.githubusercontent.com/gitpod-io/gitpod/master/components/dashboard/src/icons/gitpod.svg" height="60">
     <h3 align="center">Gitpod</h3>
   </a>
   <p align="center">Always ready-to-code.</p>
 </p>
 
-[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/from-referrer/)
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-908a85?logo=gitpod)](https://gitpod.io/from-referrer/)
 [![Werft.dev - Gitpod CI](https://img.shields.io/badge/Werft.dev-CI--builds-green)](https://werft.gitpod-dev.com/)
 
 Gitpod is an open-source Kubernetes application for automated and ready-to-code development environments that blends in your existing workflow. It enables you to describe your dev environment as code and start instant and fresh development environments for each new task directly from your browser.
 
 Tightly integrated with GitLab, GitHub, and Bitbucket, Gitpod automatically and continuously prebuilds dev environments for all your branches. As a result, team members can instantly start coding with fresh, ephemeral and fully-compiled dev environments - no matter if you are building a new feature, want to fix a bug or do a code review.
 
-![image](https://user-images.githubusercontent.com/372735/90360227-6fc44180-e05b-11ea-8f66-71e96a836d78.png)
+![image](https://user-images.githubusercontent.com/120486/116072013-40a8aa00-a697-11eb-846b-89e6f5e1a82e.png)
 
 ## Features
 
@@ -24,33 +24,33 @@ Tightly integrated with GitLab, GitHub, and Bitbucket, Gitpod automatically and 
 🐳 [Integrated Docker build](https://www.gitpod.io/docs/config-docker/) - Gitpod instantly starts a container in the cloud based on your Docker image. Tools that are required for your project are easy to install and configure.
 
 👐 [GitLab, GitHub, and Bitbucket integration](https://www.gitpod.io/docs/integrations/) - Gitpod seamlessly integrates in your workflow and works with all major git hosting platforms including GitHub, GitLab and Bitbucket.
- 
+
 👀 [Integrated code reviews](https://www.gitpod.io/docs/code-reviews/#code-reviews) - with Gitpod you can do native code reviews on any PR/MR. No need to switch context anymore and clutter your local machine with your colleagues PR/MR.
 
 👯‍♀️ [Collaboration](https://www.gitpod.io/docs/sharing-and-collaboration/) - invite team members to your dev environment or snapshot any state of your dev environment to share it with your team asynchronously.
 
-🛠 Professional & customizable developer experience - a Gitpod workspace gives you the same capabilities (yes, even [root & docker](https://www.gitpod.io/docs/feature-preview/#root-access)) as your Linux machine - pre-configured and optimized for your individual development workflow. Install any [VS Code extension](https://www.gitpod.io/docs/vscode-extensions/) with one click on a user and/or team level. 
+🛠 Professional & customizable developer experience - a Gitpod workspace gives you the same capabilities (yes, even [root & docker](https://www.gitpod.io/docs/feature-preview/#root-access)) as your Linux machine - pre-configured and optimized for your individual development workflow. Install any [VS Code extension](https://www.gitpod.io/docs/vscode-extensions/) with one click on a user and/or team level.
 
-[Learn more 👉](https://www.gitpod.io/features/) 
+[Learn more 👉](https://www.gitpod.io/features/)
 
-Gitpod is provided as a [managed Saas version](https://gitpod.io) with a free subscription for open-source or a [free self-hosted version](https://www.gitpod.io/self-hosted/). An enterprise license is available [here](https://www.gitpod.io/self-hosted/).
+Gitpod is provided as a [managed Saas version](https://gitpod.io) with a free subscription for open-source or a [free self-hosted version](https://www.gitpod.io/self-hosted). An enterprise license is available [here](https://www.gitpod.io/self-hosted).
 
 ## Getting Started
 
 You can start using Gitpod with one or more of the following ways:
-1. [Use a Prefixed URL](https://www.gitpod.io/docs/context-urls/)
-1. [Install Browser Extension](https://www.gitpod.io/docs/browser-extension/)
-1. [Enable GitLab Integration](https://www.gitpod.io/docs/gitlab-integration/)
+1. [Use a Prefixed URL](https://www.gitpod.io/docs/getting-started/#prefixed-url)
+1. [Install Browser Extension](https://www.gitpod.io/docs/getting-started#browser-extension)
+1. [Enable GitLab Integration](https://www.gitpod.io/docs/getting-started#gitlab-integration)
 1. Quick start using an [Example Project](https://www.gitpod.io/docs/getting-started/#example-project) or [OSS Project](https://www.gitpod.io/docs/getting-started/#gitpodified-open-source-project)
 
 ## Documentation
 
-All documentation can be found on https://docs.gitpod.io.
-For example, see [Introduction](https://www.gitpod.io/docs/) and [Getting Started](https://www.gitpod.io/docs/getting-started/) sections. 📚
+All documentation can be found on https://www.gitpod.io/docs.
+For example, see [Introduction](https://www.gitpod.io/docs) and [Getting Started](https://www.gitpod.io/docs/getting-started) sections. 📚
 
 ## Questions
 
-For questions and support please use the [community forum](http://community.gitpod.io/).
+For questions and support please use the [community forum](http://community.gitpod.io).
 Join the conversation, and connect with other community members. 💬
 
 You can also follow [`@gitpod`](https://twitter.com/gitpod) for announcements and updates from our team.

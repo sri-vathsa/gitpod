@@ -12,16 +12,13 @@
 
 import * as jspb from "google-protobuf";
 
-export class UploadUrlRequest extends jspb.Message { 
+export class UploadUrlRequest extends jspb.Message {
     getOwnerId(): string;
     setOwnerId(value: string): UploadUrlRequest;
-
     getName(): string;
     setName(value: string): UploadUrlRequest;
-
     getContentType(): string;
     setContentType(value: string): UploadUrlRequest;
-
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): UploadUrlRequest.AsObject;
@@ -41,10 +38,9 @@ export namespace UploadUrlRequest {
     }
 }
 
-export class UploadUrlResponse extends jspb.Message { 
+export class UploadUrlResponse extends jspb.Message {
     getUrl(): string;
     setUrl(value: string): UploadUrlResponse;
-
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): UploadUrlResponse.AsObject;
@@ -62,16 +58,13 @@ export namespace UploadUrlResponse {
     }
 }
 
-export class DownloadUrlRequest extends jspb.Message { 
+export class DownloadUrlRequest extends jspb.Message {
     getOwnerId(): string;
     setOwnerId(value: string): DownloadUrlRequest;
-
     getName(): string;
     setName(value: string): DownloadUrlRequest;
-
     getContentType(): string;
     setContentType(value: string): DownloadUrlRequest;
-
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): DownloadUrlRequest.AsObject;
@@ -91,10 +84,9 @@ export namespace DownloadUrlRequest {
     }
 }
 
-export class DownloadUrlResponse extends jspb.Message { 
+export class DownloadUrlResponse extends jspb.Message {
     getUrl(): string;
     setUrl(value: string): DownloadUrlResponse;
-
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): DownloadUrlResponse.AsObject;
@@ -112,22 +104,19 @@ export namespace DownloadUrlResponse {
     }
 }
 
-export class DeleteRequest extends jspb.Message { 
+export class DeleteRequest extends jspb.Message {
     getOwnerId(): string;
     setOwnerId(value: string): DeleteRequest;
-
 
     hasExact(): boolean;
     clearExact(): void;
     getExact(): string;
     setExact(value: string): DeleteRequest;
 
-
     hasPrefix(): boolean;
     clearPrefix(): void;
     getPrefix(): string;
     setPrefix(value: string): DeleteRequest;
-
 
     getNameCase(): DeleteRequest.NameCase;
 
@@ -150,16 +139,13 @@ export namespace DeleteRequest {
 
     export enum NameCase {
         NAME_NOT_SET = 0,
-    
-    EXACT = 2,
-
-    PREFIX = 3,
-
+        EXACT = 2,
+        PREFIX = 3,
     }
 
 }
 
-export class DeleteResponse extends jspb.Message { 
+export class DeleteResponse extends jspb.Message {
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): DeleteResponse.AsObject;

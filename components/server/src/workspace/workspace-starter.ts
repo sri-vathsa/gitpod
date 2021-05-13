@@ -32,6 +32,7 @@ import { OneTimeSecretServer } from "../one-time-secret-server";
 import { UserDB } from '@gitpod/gitpod-db/lib/user-db';
 import { DBUser } from '@gitpod/gitpod-db/lib/typeorm/entity/db-user';
 import { ScopedResourceGuard } from '../auth/resource-access';
+import { IAnalyticsWriter } from '@gitpod/gitpod-protocol/lib/util/analytics';
 
 @injectable()
 export class WorkspaceStarter {
@@ -46,6 +47,7 @@ export class WorkspaceStarter {
     @inject(ImageBuilderClientProvider) protected readonly imagebuilderClientProvider: ImageBuilderClientProvider;
     @inject(ImageSourceProvider) protected readonly imageSourceProvider: ImageSourceProvider;
     @inject(UserService) protected readonly userService: UserService;
+    @inject(IAnalyticsWriter) protected readonly analytics: IAnalyticsWriter;
     @inject(TheiaPluginService) protected readonly theiaService: TheiaPluginService;
     @inject(OneTimeSecretServer) protected readonly otsServer: OneTimeSecretServer;
 
@@ -80,7 +82,7 @@ export class WorkspaceStarter {
                 const res = await client.resolveBaseImage({span}, req);
                 workspace.imageSource = <WorkspaceImageSourceReference>{
                   baseImageResolved: res.getRef()
-                }   
+                }
             }
 
             // create and store instance
@@ -154,7 +156,9 @@ export class WorkspaceStarter {
             startRequest.setServicePrefix(workspace.id);
 
             // tell the world we're starting this instance
+            const { manager, installation } = await this.clientProvider.getStartManager(user, workspace, instance);
             instance.status.phase = "pending";
+            instance.region = installation;
             await this.workspaceDb.trace({ span }).storeInstance(instance);
             try {
                 await this.messageBus.notifyOnInstanceUpdate(workspace.ownerId, instance);
@@ -166,9 +170,19 @@ export class WorkspaceStarter {
             }
 
             // start that thing
-            const manager = await this.clientProvider.getDefault();
             const resp = (await manager.startWorkspace({ span }, startRequest)).toObject();
             span.log({ "resp": resp });
+
+            this.analytics.track({ 
+                userId: user.id, 
+                event: "workspace-started", 
+                properties: {
+                    workspaceId: workspace.id,
+                    instanceId: instance.id,
+                    contextURL: workspace.contextURL,
+                    usesPrebuild: spec.getInitializer()?.hasPrebuild(),
+                }
+            });
 
             return { instanceID: instance.id, workspaceURL: resp.url };
         } catch (err) {
@@ -227,13 +241,13 @@ export class WorkspaceStarter {
 
     /**
      * Creates a new instance for a given workspace and its owner
-     * 
+     *
      * @param workspace the workspace to create an instance for
      */
     protected async newInstance(workspace: Workspace, user: User): Promise<WorkspaceInstance> {
         const theiaVersion = this.env.theiaVersion;
         const ideImage = this.env.ideDefaultImage;
-        
+
         // TODO(cw): once we allow changing the IDE in the workspace config (i.e. .gitpod.yml), we must
         //           give that value precedence over the default choice.
         const configuration: WorkspaceInstanceConfiguration = {
@@ -241,28 +255,28 @@ export class WorkspaceStarter {
             ideImage,
         };
 
+        const ideChoice = user.additionalData?.ideSettings?.defaultIde;
+        if (!!ideChoice) {
+            const mappedImage = this.env.ideImageAliases[ideChoice];
+            if (!!mappedImage) {
+                configuration.ideImage = mappedImage;
+            } else if (this.authService.hasPermission(user, "ide-settings")) {
+                // if the IDE choice isn't one of the preconfiured choices, we assume its the image name.
+                // For now, this feature requires special permissions.
+                configuration.ideImage = ideChoice;
+            }
+        }
+
         let featureFlags: NamedWorkspaceFeatureFlag[] = workspace.config._featureFlags || [];
         featureFlags = featureFlags.concat(this.env.defaultFeatureFlags);
         if (user.featureFlags && user.featureFlags.permanentWSFeatureFlags) {
             featureFlags = featureFlags.concat(featureFlags, user.featureFlags.permanentWSFeatureFlags);
         }
-        
+
         // if the user has feature preview enabled, we need to add the respective feature flags.
         // Beware: all feature flags we add here are not workspace-persistent feature flags, e.g. no full-workspace backup.
         if (!!user.additionalData?.featurePreview) {
             featureFlags = featureFlags.concat(this.env.previewFeatureFlags.filter(f => !featureFlags.includes(f)));
-
-            const ideChoice = user.additionalData?.ideSettings?.defaultIde;
-            if (!!ideChoice) {
-                const mappedImage = this.env.ideImageAliases[ideChoice];
-                if (!!mappedImage) {
-                    configuration.ideImage = mappedImage;
-                } else if (this.authService.hasPermission(user, "ide-settings")) {
-                    // if the IDE choice isn't one of the preconfiured choices, we assume its the image name.
-                    // For now, this feature requires special permissions.
-                    configuration.ideImage = ideChoice;
-                }
-            }
         }
 
         if (!!featureFlags) {
@@ -277,7 +291,7 @@ export class WorkspaceStarter {
             workspaceId: workspace.id,
             creationTime: now,
             ideUrl: '', // Initially empty, filled during starting process
-            region: this.env.installationShortname,
+            region: '', // Initially empty, filled during starting process
             workspaceImage: '', // Initially empty, filled during starting process
             status: {
                 conditions: {},
@@ -303,7 +317,7 @@ export class WorkspaceStarter {
 
                 const src = new BuildSource();
                 src.setRef(ref);
-            
+
                 // It doesn't matter what registries the user has access to at this point.
                 // All they need access to is the base image repository, as we're building the Gitpod layer only.
                 const nauth = new BuildRegistryAuthSelective();
@@ -313,7 +327,7 @@ export class WorkspaceStarter {
 
                 return {src, auth};
             }
-            
+
             const auth = new BuildRegistryAuth();
             const userHasRegistryAccess = this.authService.hasPermission(user, Permission.REGISTRY_ACCESS);
             if (userHasRegistryAccess) {
@@ -362,7 +376,7 @@ export class WorkspaceStarter {
                 src.setRef(ref);
                 return {src, auth};
             }
-            
+
             throw new Error("unknown workspace image source");
         } catch (e) {
             TraceContext.logError({ span }, e);
@@ -466,6 +480,7 @@ export class WorkspaceStarter {
 
             TraceContext.logError({ span }, err);
             log.error({instanceId: instance.id, userId: user.id, workspaceId: workspace.id}, `workspace image build failed: ${message}`);
+            this.analytics.track({ userId: user.id, event: "imagebuild-failed", properties: { workspaceId: workspace.id, instanceId: instance.id, contextURL: workspace.contextURL, }});
 
             throw err;
         } finally {
@@ -498,6 +513,11 @@ export class WorkspaceStarter {
         contextUrlEnv.setName('GITPOD_WORKSPACE_CONTEXT_URL');
         contextUrlEnv.setValue(workspace.contextURL);
         envvars.push(contextUrlEnv);
+
+        const contextEnv = new EnvironmentVariable();
+        contextEnv.setName('GITPOD_WORKSPACE_CONTEXT');
+        contextEnv.setValue(JSON.stringify(workspace.context));
+        envvars.push(contextEnv);
 
         log.debug("Workspace config", workspace.config)
         if (!!workspace.config.tasks) {
@@ -619,7 +639,7 @@ export class WorkspaceStarter {
     }
 
     protected createDefaultGitpodAPITokenScopes(workspace: Workspace, instance: WorkspaceInstance): string[] {
-        return [
+        const scopes = [
             "function:getWorkspace",
             "function:getLoggedInUser",
             "function:getPortAuthenticationToken",
@@ -642,15 +662,26 @@ export class WorkspaceStarter {
             "function:getContentBlobUploadUrl",
             "function:getContentBlobDownloadUrl",
             "function:accessCodeSyncStorage",
+            "function:guessGitTokenScopes",
+            "function:getEnvVars",
+            "function:setEnvVar",
+            "function:deleteEnvVar",
 
             "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "workspace", subjectID: workspace.id, operations: ["get", "update"]}),
             "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "workspaceInstance", subjectID: instance.id, operations: ["get", "update", "delete"]}),
-            "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "snapshot", subjectID: "*", operations: ["create", "get"]}),
+            "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "snapshot", subjectID: ScopedResourceGuard.SNAPSHOT_WORKSPACE_SUBJECT_ID_PREFIX + workspace.id, operations: ["create"]}),
             "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "gitpodToken", subjectID: "*", operations: ["create"]}),
             "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "userStorage", subjectID: "*", operations: ["create", "get", "update"]}),
             "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "token", subjectID: "*", operations: ["get"]}),
             "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "contentBlob", subjectID: "*", operations: ["create", "get"]}),
-        ]
+        ];
+        if (CommitContext.is(workspace.context)) {
+            const subjectID = workspace.context.repository.owner + '/' + workspace.context.repository.name;
+            scopes.push(
+                "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "envVar", subjectID, operations: ["create", "get", "update", "delete"]}),
+            );
+        }
+        return scopes;
     }
 
     protected createGitSpec(workspace: Workspace, user: User): GitSpec {
@@ -770,7 +801,7 @@ export class WorkspaceStarter {
             gitConfig.setAuthUser(token.username || "oauth2");
             gitConfig.setAuthPassword(token.value);
         }
-        
+
         const userGitConfig = workspace.config.gitConfig;
         if (!!userGitConfig) {
             Object.keys(userGitConfig)

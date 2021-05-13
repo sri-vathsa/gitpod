@@ -48,15 +48,19 @@ spec:
       - name: config
         configMap:
           name: {{ template "gitpod.comp.configMap" $this }}
-      - name: tls-certs
+      - name: ws-daemon-tls-certs
         secret:
           secretName: ws-daemon-tls
+      - name: tls-certs
+        secret:
+          secretName: {{ $comp.tls.server.secretName }}
       - name: workspace-template
         configMap:
           name: workspace-template
 {{- if $comp.volumes }}
 {{ toYaml $comp.volumes | indent 6 }}
 {{- end }}
+      enableServiceLinks: false
       containers:
       - name: ws-manager
         args: ["run", "-v", "--config", "/config/config.json"]
@@ -70,6 +74,9 @@ spec:
           readOnly: true
         - name: workspace-template
           mountPath: "/workspace-template"
+          readOnly: true
+        - mountPath: /ws-daemon-tls-certs
+          name: ws-daemon-tls-certs
           readOnly: true
         - mountPath: /certs
           name: tls-certs

@@ -30,6 +30,8 @@ daemon:
     backup:
       timeout: "5m"
       attempts: 3
+    userNamespaces:
+      fsShift: {{ $comp.userNamespaces.fsShift | default "fuse" }}
     fullWorkspaceBackup:
       workdir: "/mnt/node0/gitpod-{{ .Release.Namespace }}"
     initializer:
@@ -44,7 +46,7 @@ daemon:
         size: 70000
   resources:
     cgroupBasePath: "/mnt/node-cgroups"
-    cpuBuckets: 
+    cpuBuckets:
 {{ .Values.workspaceSizing.dynamic.cpu.buckets | toYaml | indent 6 }}
     processPriorities:
       supervisor: 0
@@ -70,7 +72,7 @@ service:
     crt: "/certs/tls.crt"
     key: "/certs/tls.key"
 prometheus:
-  address: ":9500"
+  address: "127.0.0.1:9500"
 pprof:
   address: ":6060"
 {{ end }}

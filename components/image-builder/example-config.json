@@ -6,14 +6,14 @@
         "baseImageRepository": "eu.gcr.io/gitpod-dev/base-images",
         "workspaceImageRepository": "eu.gcr.io/gitpod-dev/workspace-images",
         "imageBuildSalt": "001",
-        "alpineImage": "alpine:3.9",
+        "alpineImage": "alpine:3.13",
         "selfBuildBaseImage": ""
     },
     "pprof": {
         "address": ":9999"
     },
     "prometheus": {
-        "address": ":9500"
+        "address": "127.0.0.1:9500"
     },
     "service": {
         "address": ":8080"

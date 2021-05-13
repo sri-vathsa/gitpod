@@ -145,7 +145,7 @@ func newGitInitializer(ctx context.Context, loc string, req *csapi.GitInitialize
 			user, pwd, err = downloadOTS(ctx, req.Config.AuthOts)
 			if err != nil {
 				log.WithField("location", loc).WithError(err).Error("cannot download Git auth OTS")
-				return "", "", status.Error(codes.InvalidArgument, fmt.Sprintf("cannot get OTS"))
+				return "", "", status.Error(codes.InvalidArgument, "cannot get OTS")
 			}
 		case csapi.GitAuthMethod_NO_AUTH:
 		default:
@@ -179,6 +179,7 @@ func newSnapshotInitializer(loc string, rs storage.DirectDownloader, req *csapi.
 }
 
 func downloadOTS(ctx context.Context, url string) (user, pwd string, err error) {
+	//nolint:ineffassign
 	span, ctx := opentracing.StartSpanFromContext(ctx, "downloadOTS")
 	defer tracing.FinishSpan(span, &err)
 	span.LogKV("url", url)
@@ -188,7 +189,7 @@ func downloadOTS(ctx context.Context, url string) (user, pwd string, err error) 
 		if err != nil {
 			return "", "", err
 		}
-		opentracing.GlobalTracer().Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
+		_ = opentracing.GlobalTracer().Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -279,6 +280,7 @@ func WithChown(uid, gid int) InitializeOpt {
 
 // InitializeWorkspace initializes a workspace from backup or an initializer
 func InitializeWorkspace(ctx context.Context, location string, remoteStorage storage.DirectDownloader, opts ...InitializeOpt) (src csapi.WorkspaceInitSource, err error) {
+	//nolint:ineffassign
 	span, ctx := opentracing.StartSpanFromContext(ctx, "InitializeWorkspace")
 	span.SetTag("location", location)
 	defer tracing.FinishSpan(span, &err)
@@ -313,7 +315,8 @@ func InitializeWorkspace(ctx context.Context, location string, remoteStorage sto
 			return src, xerrors.Errorf("cannot clean workspace folder: %w", err)
 		}
 		for _, f := range fs {
-			err := os.RemoveAll(filepath.Join(location, f.Name()))
+			path := filepath.Join(location, f.Name())
+			err := os.RemoveAll(path)
 			if err != nil {
 				return src, xerrors.Errorf("cannot clean workspace folder: %w", err)
 			}

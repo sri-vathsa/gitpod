@@ -41,6 +41,7 @@ spec:
     spec:
 {{ include "gitpod.pod.affinity" $this | indent 6 }}
       serviceAccountName: ws-manager-bridge
+      enableServiceLinks: false
       initContainers:
 {{ include "gitpod.databaseWaiter.container" $this | indent 6 }}
 {{ include "gitpod.msgbusWaiter.container" $this | indent 6 }}
@@ -56,9 +57,13 @@ spec:
         - name: config
           mountPath: "/config"
           readOnly: true
+        - mountPath: /ws-manager-client-tls-certs
+          name: ws-manager-client-tls-certs
+          readOnly: true
 {{ include "gitpod.container.defaultEnv" $this | indent 8 }}
 {{ include "gitpod.container.dbEnv" $this | indent 8 }}
 {{ include "gitpod.container.tracingEnv" $this | indent 8 }}
+{{ include "gitpod.container.analyticsEnv" $this | indent 8 }}
 {{ include "gitpod.container.messagebusEnv" $this | indent 8 }}
         - name: LOG_LEVEL
           value: "trace"
@@ -68,5 +73,8 @@ spec:
       - name: config
         configMap:
           name: {{ template "gitpod.comp.configMap" $this }}
+      - name: ws-manager-client-tls-certs
+        secret:
+          secretName: {{ .Values.components.wsManager.tls.client.secretName }}
 {{ toYaml .Values.defaults | indent 6 }}
 {{ end }}

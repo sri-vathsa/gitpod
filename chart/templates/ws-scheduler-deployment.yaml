@@ -47,6 +47,10 @@ spec:
       - name: config
         configMap:
           name: {{ template "gitpod.comp.configMap" $this }}
+      - name: ws-manager-client-tls-certs
+        secret:
+          secretName: {{ .Values.components.wsManager.tls.client.secretName }}
+      enableServiceLinks: false
       containers:
       - name: scheduler
         args: ["run", "-v", "--config", "/config/config.json"]
@@ -57,6 +61,9 @@ spec:
         volumeMounts:
         - name: config
           mountPath: "/config"
+          readOnly: true
+        - mountPath: /ws-manager-client-tls-certs
+          name: ws-manager-client-tls-certs
           readOnly: true
         securityContext:
           privileged: false

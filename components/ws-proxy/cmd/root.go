@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"os"
 
-	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/spf13/cobra"
 	"golang.org/x/xerrors"
 
 	"github.com/gitpod-io/gitpod/common-go/log"
 	"github.com/gitpod-io/gitpod/common-go/tracing"
+	"github.com/gitpod-io/gitpod/common-go/util"
 	"github.com/gitpod-io/gitpod/ws-proxy/pkg/proxy"
 )
 
@@ -54,12 +54,13 @@ func init() {
 
 // Config configures this servuce
 type Config struct {
-	Ingress                     HostBasedIngressConfig            `json:"ingress"`
+	Ingress                     proxy.HostBasedIngressConfig      `json:"ingress"`
 	Proxy                       proxy.Config                      `json:"proxy"`
 	WorkspaceInfoProviderConfig proxy.WorkspaceInfoProviderConfig `json:"workspaceInfoProviderConfig"`
 	PProfAddr                   string                            `json:"pprofAddr"`
 	PrometheusAddr              string                            `json:"prometheusAddr"`
 	ReadinessProbeAddr          string                            `json:"readinessProbeAddr"`
+	WSManagerProxy              WSManagerProxyConfig              `json:"wsManagerProxy"`
 }
 
 // Validate validates the configuration to catch issues during startup and not at runtime
@@ -73,25 +74,39 @@ func (c *Config) Validate() error {
 	if err := c.WorkspaceInfoProviderConfig.Validate(); err != nil {
 		return err
 	}
+	if err := c.WSManagerProxy.Validate(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-// HostBasedIngressConfig configures the host-based ingress
-type HostBasedIngressConfig struct {
-	Address string `json:"address"`
-	Header  string `json:"header"`
+// WSManagerProxyConfig configures the ws-manager TCP proxy
+type WSManagerProxyConfig struct {
+	ListenAddress string            `json:"listenAddress"`
+	RateLimiter   RateLimiterConfig `json:"rateLimiter"`
 }
 
 // Validate validates this config
-func (c *HostBasedIngressConfig) Validate() error {
-	if c == nil {
-		return xerrors.Errorf("host based ingress config is mandatory")
+func (c *WSManagerProxyConfig) Validate() error {
+	if c != nil && len(c.ListenAddress) > 0 {
+		return c.RateLimiter.Validate()
 	}
-	return validation.ValidateStruct(c,
-		validation.Field(&c.Address, validation.Required),
-		validation.Field(&c.Header, validation.Required),
-	)
+	return nil
+}
+
+// RateLimiterConfig configures a rate limiter
+type RateLimiterConfig struct {
+	RefillInterval util.Duration `json:"refillInterval"`
+	BucketSize     int           `json:"bucketSize"`
+}
+
+// Validate validates this config
+func (c *RateLimiterConfig) Validate() error {
+	if c == nil {
+		return xerrors.Errorf("rate limiter config is nil")
+	}
+	return nil
 }
 
 // getConfig loads and validates the configuration

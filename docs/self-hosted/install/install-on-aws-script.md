@@ -2,14 +2,14 @@
 url: /docs/self-hosted/latest/install/install-on-aws-script/
 ---
 
-> Since the `0.6.0` release (December 2019) the installers are broken. We're working on bringing those back with one of the next releases.
+> Since the `0.6.0` release (December 2019) the installers are deprecated. They are no longer working to their full extend and will be removed in a future release.
 
 # Getting started with Gitpod on AWS
 
 This guide explains how to install an instance of Gitpod with 3 simple steps:
 
 ## 1. Get your AWS credentials
- 
+
 You need an [AWS account](https://aws.amazon.com/). Once you have access to an account, follow [these steps](https://docs.aws.amazon.com/IAM/latest/UserGuide/getting-started_create-admin-group.html) to obtain valid credentials.
 
 ```bash
@@ -28,7 +28,7 @@ docker run --rm -it \
     -e AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY \
     -v "$PWD/awsinstall":"/workspace" \
-    gcr.io/gitpod-io/self-hosted/installer:0.7.0 aws
+    gcr.io/gitpod-io/self-hosted/installer:0.8.0 aws
 ```
 
 This will kickstart the installation process, authenticate with AWS and automatically set up your Gitpod deployment using Docker and Terraform.

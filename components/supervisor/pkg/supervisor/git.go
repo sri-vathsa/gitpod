@@ -6,6 +6,9 @@ package supervisor
 
 import (
 	"context"
+	"fmt"
+	"os/exec"
+	"strings"
 
 	gitpod "github.com/gitpod-io/gitpod/gitpod-protocol"
 	"github.com/gitpod-io/gitpod/supervisor/api"
@@ -14,13 +17,17 @@ import (
 // GitTokenProvider provides tokens for Git hosting services by asking
 // the Gitpod server.
 type GitTokenProvider struct {
-	gitpodAPI gitpod.APIInterface
+	notificationService *NotificationService
+	workspaceConfig     WorkspaceConfig
+	gitpodAPI           gitpod.APIInterface
 }
 
 // NewGitTokenProvider creates a new instance of gitTokenProvider
-func NewGitTokenProvider(gitpodAPI gitpod.APIInterface) *GitTokenProvider {
+func NewGitTokenProvider(gitpodAPI gitpod.APIInterface, workspaceConfig WorkspaceConfig, notificationService *NotificationService) *GitTokenProvider {
 	return &GitTokenProvider{
-		gitpodAPI: gitpodAPI,
+		notificationService: notificationService,
+		workspaceConfig:     workspaceConfig,
+		gitpodAPI:           gitpodAPI,
 	}
 }
 
@@ -42,6 +49,35 @@ func (p *GitTokenProvider) GetToken(ctx context.Context, req *api.GetTokenReques
 	for _, scp := range token.Scopes {
 		scopes[scp] = struct{}{}
 	}
+	missing := getMissingScopes(req.Scope, scopes)
+	if len(missing) > 0 {
+		message := fmt.Sprintf("An operation requires additional permissions: %s. Please grant permissions and try again.", strings.Join(missing, ", "))
+		result, err := p.notificationService.Notify(ctx, &api.NotifyRequest{
+			Level:   api.NotifyRequest_INFO,
+			Message: message,
+			Actions: []string{"Open Access Control"},
+		})
+		if err != nil {
+			return nil, err
+		}
+		if result.Action == "Open Access Control" {
+			gpPath, err := exec.LookPath("gp")
+			if err != nil {
+				return nil, err
+			}
+			gpCmd := exec.Command(gpPath, "preview", "--external", p.workspaceConfig.GitpodHost+"/access-control")
+			gpCmd = runAsGitpodUser(gpCmd)
+			err = gpCmd.Start()
+			if err != nil {
+				return nil, err
+			}
+			err = gpCmd.Process.Release()
+			if err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	}
 	tkn = &Token{
 		User:  token.Username,
 		Token: token.Value,
@@ -49,8 +85,15 @@ func (p *GitTokenProvider) GetToken(ctx context.Context, req *api.GetTokenReques
 		Scope: scopes,
 		Reuse: api.TokenReuse_REUSE_NEVER,
 	}
-	if !tkn.HasScopes(req.Scope) {
-		return nil, nil
-	}
 	return tkn, nil
+}
+
+func getMissingScopes(required []string, provided map[string]struct{}) []string {
+	var missing []string
+	for _, r := range required {
+		if _, found := provided[r]; !found {
+			missing = append(missing, r)
+		}
+	}
+	return missing
 }

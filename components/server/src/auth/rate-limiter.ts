@@ -77,6 +77,7 @@ function readConfig(): RateLimiterConfig {
         "getUserStorageResource": { group: "default", points: 1 },
         "updateUserStorageResource": { group: "default", points: 1 },
         "getEnvVars": { group: "default", points: 1 },
+        "getAllEnvVars": { group: "default", points: 1 },
         "setEnvVar": { group: "default", points: 1 },
         "deleteEnvVar": { group: "default", points: 1 },
         "getContentBlobUploadUrl": { group: "default", points: 1 },
@@ -94,6 +95,7 @@ function readConfig(): RateLimiterConfig {
         "resolvePlugins": { group: "default", points: 1 },
         "installUserPlugins": { group: "default", points: 1 },
         "uninstallUserPlugin": { group: "default", points: 1 },
+        "guessGitTokenScopes": { group: "default", points: 1 },
 
         "adminGetUsers": { group: "default", points: 1 },
         "adminGetUser": { group: "default", points: 1 },
@@ -104,6 +106,7 @@ function readConfig(): RateLimiterConfig {
         "adminGetWorkspaces": { group: "default", points: 1 },
         "adminGetWorkspace": { group: "default", points: 1 },
         "adminForceStopWorkspace": { group: "default", points: 1 },
+        "adminRestoreSoftDeletedWorkspace": { group: "default", points: 1 },
         "adminSetLicense": { group: "default", points: 1 },
 
         "validateLicense": { group: "default", points: 1 },
@@ -119,6 +122,7 @@ function readConfig(): RateLimiterConfig {
         "adminGetAccountStatement":  { group: "default", points: 1 },
         "adminIsStudent":  { group: "default", points: 1 },
         "adminSetProfessionalOpenSource":  { group: "default", points: 1 },
+        "adminGrantExtraHours":  { group: "default", points: 1 },
         "checkout":  { group: "default", points: 1 },
         "createPortalSession":  { group: "default", points: 1 },
         "getAccountStatement":  { group: "default", points: 1 },

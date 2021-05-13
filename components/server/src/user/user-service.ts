@@ -16,7 +16,7 @@ import { BlockedUserFilter } from "../auth/blocked-user-filter";
 import * as uuidv4 from 'uuid/v4';
 import { TermsProvider } from "../terms/terms-provider";
 import { TokenService } from "./token-service";
-import { SelectAccountException } from "../auth/errors";
+import { EmailAddressAlreadyTakenException, SelectAccountException } from "../auth/errors";
 import { SelectAccountPayload } from "@gitpod/gitpod-protocol/lib/auth";
 
 export interface FindUserByIdentityStrResult {
@@ -112,7 +112,7 @@ export class UserService {
     }
 
     private cachedIsFirstUser: boolean | undefined = undefined;
-    public async createUser({identity, token, userUpdate }: CreateUserParams): Promise<User> {
+    public async createUser({ identity, token, userUpdate }: CreateUserParams): Promise<User> {
         log.debug('Creating new user.', { identity, 'login-flow': true });
 
         const prevIsFirstUser = this.cachedIsFirstUser;
@@ -140,9 +140,12 @@ export class UserService {
     }
     protected handleNewUser(newUser: User, isFirstUser: boolean) {
         if (this.env.blockNewUsers) {
-            newUser.blocked = true;
+            const emailDomainInPasslist = (mail: string) => this.env.blockNewUsersPassList.some(e => mail.endsWith(`@${e}`));
+            const canPass = newUser.identities.some(i => !!i.primaryEmail && emailDomainInPasslist(i.primaryEmail));
+
+            newUser.blocked = !canPass;
         }
-        if (isFirstUser || this.env.makeNewUsersAdmin) {
+        if (!newUser.blocked && (isFirstUser || this.env.makeNewUsersAdmin)) {
             newUser.rolesOrPermissions = ['admin'];
         }
     }
@@ -166,27 +169,27 @@ export class UserService {
     }
 
     async checkTermsAcceptanceRequired(params: CheckTermsParams): Promise<boolean> {
-        // todo@alex: clarify if this would be a loophole for Gitpod SH.
-        // if (params.config.requireTOS === false) {
-        //     // AuthProvider config might disable terms acceptance
-        //     return false;
+        // // todo@alex: clarify if this would be a loophole for Gitpod SH.
+        // // if (params.config.requireTOS === false) {
+        // //     // AuthProvider config might disable terms acceptance
+        // //     return false;
+        // // }
+
+        // const { user } = params;
+        // if (!user) {
+        //     const userCount = await this.userDb.getUserCount();
+        //     if (userCount === 0) {
+        //         // the very first user, which will become admin, needs to accept the terms. always.
+        //         return true;
+        //     }
         // }
 
-        const { user } = params;
-        if (!user) {
-            const userCount = await this.userDb.getUserCount();
-            if (userCount === 0) {
-                // the very first user, which will become admin, needs to accept the terms. always.
-                return true;
-            }
-        }
+        // // admin users need to accept the terms.
+        // if (user && user.rolesOrPermissions && user.rolesOrPermissions.some(r => r === "admin")) {
+        //     return (await this.checkTermsAccepted(user)) === false;
+        // }
 
-        // admin users need to accept the terms.
-        if (user && user.rolesOrPermissions && user.rolesOrPermissions.some(r => r === "admin")) {
-            return (await this.checkTermsAccepted(user)) === false;
-        }
-
-        // non-admin users won't need to accept the terms.
+        // // non-admin users won't need to accept the terms.
         return false;
     }
 
@@ -196,9 +199,13 @@ export class UserService {
     }
 
     async checkTermsAccepted(user: User) {
-        const terms = this.termsProvider.getCurrent();
-        const accepted = await this.termsAcceptanceDb.getAcceptedRevision(user.id);
-        return !!accepted && (accepted.termsRevision === terms.revision);
+        // disabled terms acceptance check for now
+
+        return true;
+
+        // const terms = this.termsProvider.getCurrent();
+        // const accepted = await this.termsAcceptanceDb.getAcceptedRevision(user.id);
+        // return !!accepted && (accepted.termsRevision === terms.revision);
     }
 
     async isBlocked(params: CheckIsBlockedParams): Promise<boolean> {
@@ -211,21 +218,8 @@ export class UserService {
         return false;
     }
 
-    /**
-     * Try to find the Gitpod user ...
-     *  1. by identity
-     *  2. by email
-     */
-    async findUserForLogin(params: { candidate: Identity, primaryEmail?: string }) {
+    async findUserForLogin(params: { candidate: Identity }) {
         let user = await this.userDb.findUserByIdentity(params.candidate);
-        if (!user && params.primaryEmail) {
-            // - findUsersByEmail is supposed to return users ordered descending by last login time
-            // - we pick the most recently used one and let the old onces "dry out"
-            const usersWithPrimaryEmail = await this.userDb.findUsersByEmail(params.primaryEmail);
-            if (usersWithPrimaryEmail.length > 0) {
-                user = usersWithPrimaryEmail[0];
-            }
-        }
         return user;
     }
 
@@ -274,7 +268,8 @@ export class UserService {
 
     async deauthorize(user: User, authProviderId: string) {
         const externalIdentities = user.identities.filter(i => i.authProviderId !== TokenService.GITPOD_AUTH_PROVIDER_ID);
-        if (!externalIdentities.some(i => i.authProviderId === authProviderId)) {
+        const identity = externalIdentities.find(i => i.authProviderId === authProviderId)
+        if (!identity) {
             log.debug('Cannot deauthorize. Authorization not found.', { userId: user.id, authProviderId });
             return;
         }
@@ -282,6 +277,9 @@ export class UserService {
         if (externalIdentities.length === 1) {
             throw new Error("Cannot remove last provider authorization. Please delete account instead.");
         }
+
+        // explicitly remove associated tokens
+        await this.userDb.deleteTokens(identity);
 
         // effectively remove the provider authorization
         user.identities = user.identities.filter(i => i.authProviderId !== authProviderId);
@@ -326,6 +324,20 @@ export class UserService {
             }
         }
         throw SelectAccountException.create(`User is trying to connect a provider identity twice.`, payload);
+    }
+
+    async asserNoAccountWithEmail(email: string) {
+        const existingUser = (await this.userDb.findUsersByEmail(email))[0];
+        if (!existingUser) {
+            // no user has this email address ==> OK
+            return;
+        }
+
+        /*
+         * /!\ the given email address is used in another user account.
+         */
+
+        throw EmailAddressAlreadyTakenException.create(`Email address is already in use.`);
     }
 
 }

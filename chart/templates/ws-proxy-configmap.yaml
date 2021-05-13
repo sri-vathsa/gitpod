@@ -18,22 +18,24 @@ data:
   config.json: |-
     {
         "ingress": {
-            "address": ":8080",
-            "https": {{ $comp.useHTTPS }},
-            "header": "x-wsproxy-host"
+            "httpAddress": ":{{- $comp.ports.httpProxy.containerPort -}}",
+            "httpsAddress": ":{{- $comp.ports.httpsProxy.containerPort -}}",
+            "header": "{{- $comp.hostHeader -}}"
         },
         "workspaceInfoProviderConfig": {
             "wsManagerAddr": "ws-manager:8080",
-            "reconnectInterval": "3s"
+            "reconnectInterval": "3s",
+            "tls": {
+                "ca": "/ws-manager-client-tls-certs/ca.crt",
+                "crt": "/ws-manager-client-tls-certs/tls.crt",
+                "key": "/ws-manager-client-tls-certs/tls.key"
+            }
         },
         "proxy": {
-            {{- if and $comp.useHTTPS $.Values.certificatesSecret.secretName }}
             "https": {
-                "enabled": true,
-                "crt": "/mnt/certificates/fullchain.pem",
-                "key": "/mnt/certificates/privkey.pem"
+                "crt": "/mnt/certificates/tls.crt",
+                "key": "/mnt/certificates/tls.key"
             },
-            {{- end }}
             "transportConfig": {
                 "connectTimeout": "10s",
                 "idleConnTimeout": "60s",
@@ -60,6 +62,15 @@ data:
                 "location": "/app/public"
             }
         },
+        {{ if (and $comp.wsManagerProxy $comp.wsManagerProxy.enabled) }}
+        "wsManagerProxy": {
+            "listenAddress": "{{ $comp.wsManagerProxy.listenAddress }}",
+            "rateLimiter": {
+                "refillInterval": "1s",
+                "bucketSize": {{ $comp.wsManagerProxy.ratelimit.maxRPS }}
+            }
+        },
+        {{ end }}
         "pprofAddr": ":60060",
         "readinessProbeAddr": ":60088",
         "prometheusAddr": ":60095"

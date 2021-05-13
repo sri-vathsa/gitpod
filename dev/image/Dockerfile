@@ -4,7 +4,7 @@
 
 FROM gitpod/workspace-full-vnc:latest
 
-ENV TRIGGER_REBUILD 5
+ENV TRIGGER_REBUILD 9
 
 USER root
 
@@ -49,7 +49,7 @@ RUN curl -fsSL https://go.kubebuilder.io/dl/2.3.2/linux/amd64 | tar -xz -C /tmp/
 RUN install-packages mysql-client
 
 # golangci-lint
-RUN cd /usr/local && curl -fsSL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.16.0
+RUN cd /usr/local && curl -fsSL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.39.0
 
 # leeway
 ENV LEEWAY_NESTED_WORKSPACE=true
@@ -64,14 +64,19 @@ ENV WERFT_DIAL_MODE=kubernetes
 RUN cd /usr/bin && curl -fsSL https://github.com/csweichel/werft/releases/download/v0.0.5rc/werft-client-linux-amd64.tar.gz | tar xz && mv werft-client-linux-amd64 werft
 
 # yq - jq for YAML files
-RUN cd /usr/bin && curl -fsSL https://github.com/mikefarah/yq/releases/download/2.4.0/yq_linux_amd64 > yq && chmod +x yq
+# Note: we rely on version 3.x.x in various places, 4.x breaks this!
+RUN cd /usr/bin && curl -fsSL https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 > yq && chmod +x yq
+
+# release helper
+RUN cd /usr/bin && curl -fsSL https://github.com/c4milo/github-release/releases/download/v1.1.0/github-release_v1.1.0_linux_amd64.tar.gz | tar xz
 
 ### Protobuf
 RUN set -ex \
     && tmpdir=$(mktemp -d) \
-    && curl -fsSL -o $tmpdir/protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.zip \
+    && curl -fsSL -o $tmpdir/protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v3.15.5/protoc-3.15.5-linux-x86_64.zip \
     && mkdir -p /usr/lib/protoc && cd /usr/lib/protoc && unzip $tmpdir/protoc.zip \
-    && chmod -R 755 /usr/lib/protoc/include/google \
+    && chmod -R o+r+x /usr/lib/protoc/include \
+    && chmod -R +x /usr/lib/protoc/bin \
     && ln -s /usr/lib/protoc/bin/* /usr/bin \
     && rm -rf $tmpdir
 
@@ -84,7 +89,8 @@ RUN curl -fsSL https://packagecloud.io/datawireio/telepresence/gpgkey | apt-key 
         iproute2 \
         iptables \
         net-tools \
-        telepresence=0.94
+        socat \
+        telepresence=0.109
 
 ### Toxiproxy CLI
 RUN curl -fsSL -o /usr/bin/toxiproxy https://github.com/Shopify/toxiproxy/releases/download/v2.1.4/toxiproxy-cli-linux-amd64 \
@@ -99,22 +105,22 @@ RUN install-packages gperf \
 USER gitpod
 
 # Fix node version we develop against
-ARG GITPOD_NODE_VERSION=12.18.3
+ARG GITPOD_NODE_VERSION=12.22.1
 RUN bash -c ". .nvm/nvm.sh \
-        && OLD_NODE=\$(node --version) \
         && nvm install $GITPOD_NODE_VERSION \
-        && nvm uninstall \$OLD_NODE || : \
         && npm install -g typescript yarn"
 ENV PATH=/home/gitpod/.nvm/versions/node/v${GITPOD_NODE_VERSION}/bin:$PATH
 
 # Fix the Go version
 ENV GOPATH=$HOME/go-packages
 ENV GOROOT=$HOME/go
-RUN go get golang.org/dl/go1.16 && \
-    go1.16 download && \
-    mv $(which go1.16) $(which go)
-ENV GOPATH=/workspace/go \
-    PATH=/workspace/go/bin:$PATH
+RUN go get golang.org/dl/go1.16.3 \
+  && go1.16.3 download \
+  && mv $(which go1.16.3) $(which go)
+ENV GOPATH=/workspace/go
+ENV PATH=/workspace/go/bin:$PATH
+
+ENV GOFLAGS="-mod=readonly"
 
 ## Register leeway autocompletion in bashrc
 RUN bash -c "echo . \<\(leeway bash-completion\) >> ~/.bashrc"

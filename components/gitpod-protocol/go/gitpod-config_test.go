@@ -10,7 +10,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/sirupsen/logrus"
 )
+
+var log = logrus.NewEntry(logrus.StandardLogger())
 
 func TestGitpodConfig(t *testing.T) {
 	tests := []struct {
@@ -21,8 +24,8 @@ func TestGitpodConfig(t *testing.T) {
 		{
 			Desc: "parsing",
 			Content: `
-image: eu.gcr.io/gitpod-core-dev/dev/dev-environment:cw-pull-latest-werft.4
-workspaceLocation: gitpod/gitpod-ws.theia-workspace
+image: eu.gcr.io/gitpod-core-dev/dev/dev-environment:aledbf-cilint-fork.0
+workspaceLocation: gitpod/gitpod-ws.code-workspace
 checkoutLocation: gitpod
 ports:
   - port: 1337
@@ -40,8 +43,8 @@ vscode:
     - hangxingliu.vscode-nginx-conf-hint@0.1.0:UATTe2sTFfCYWQ3jw4IRsw==
     - zxh404.vscode-proto3@0.4.2:ZnPmyF/Pb8AIWeCqc83gPw==`,
 			Expectation: &GitpodConfig{
-				Image:             "eu.gcr.io/gitpod-core-dev/dev/dev-environment:cw-pull-latest-werft.4",
-				WorkspaceLocation: "gitpod/gitpod-ws.theia-workspace",
+				Image:             "eu.gcr.io/gitpod-core-dev/dev/dev-environment:aledbf-cilint-fork.0",
+				WorkspaceLocation: "gitpod/gitpod-ws.code-workspace",
 				CheckoutLocation:  "gitpod",
 				Ports: []*PortsItems{
 					{
@@ -81,7 +84,7 @@ vscode:
 			defer os.RemoveAll(tempDir)
 
 			locationReady := make(chan struct{})
-			configService := NewConfigService(tempDir+"/.gitpod.yml", locationReady)
+			configService := NewConfigService(tempDir+"/.gitpod.yml", locationReady, log)
 			context, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			close(locationReady)

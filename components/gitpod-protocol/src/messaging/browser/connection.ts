@@ -12,6 +12,7 @@ import ReconnectingWebSocket from 'reconnecting-websocket';
 
 export interface WebSocketOptions {
     onerror?: (event: Event) => void;
+    onListening?: (socket: ReconnectingWebSocket) => void;
 }
 
 export class WebSocketConnectionProvider {
@@ -23,19 +24,32 @@ export class WebSocketConnectionProvider {
      * An optional target can be provided to handle
      * notifications and requests from a remote side.
      */
-    createProxy<T extends object>(path: string, target?: object, options?: WebSocketOptions): JsonRpcProxy<T> {
+    createProxy<T extends object>(path: string | Promise<string>, target?: object, options?: WebSocketOptions): JsonRpcProxy<T> {
         const factory = new JsonRpcProxyFactory<T>(target);
-        this.listen({
-            path,
-            onConnection: c => factory.listen(c)
-        }, options);
+        const startListening = (path: string) => {
+            const socket = this.listen({
+                path,
+                onConnection: c => factory.listen(c)
+            },
+                options
+            );
+            if (options?.onListening) {
+                options.onListening(socket as any as ReconnectingWebSocket)
+            }
+        };
+
+        if (typeof path === "string") {
+            startListening(path);
+        } else {
+            path.then(path => startListening(path));
+        }
         return factory.createProxy();
     }
 
     /**
      * Install a connection handler for the given path.
      */
-    listen(handler: ConnectionHandler, options?: WebSocketOptions): void {
+    listen(handler: ConnectionHandler, options?: WebSocketOptions): WebSocket {
         const url = handler.path;
         const webSocket = this.createWebSocket(url);
 
@@ -55,6 +69,7 @@ export class WebSocketConnectionProvider {
             onConnection: connection => handler.onConnection(connection),
             logger
         });
+        return webSocket;
     }
 
     protected createLogger(): Logger {

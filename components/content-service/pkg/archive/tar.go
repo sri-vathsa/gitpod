@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/moby/moby/pkg/system"
 	"github.com/opentracing/opentracing-go"
 	"golang.org/x/xerrors"
 
@@ -63,7 +64,7 @@ func WithGIDMapping(mappings []IDMapping) TarOption {
 // ExtractTarbal extracts an OCI compatible tar file src to the folder dst, expecting the overlay whiteout format
 func ExtractTarbal(ctx context.Context, src io.Reader, dst string, opts ...TarOption) (err error) {
 	//nolint:staticcheck,ineffassign
-	span, _ := opentracing.StartSpanFromContext(ctx, "extractTarbal")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "extractTarbal")
 	span.LogKV("src", src, "dst", dst)
 	defer tracing.FinishSpan(span, &err)
 
@@ -80,6 +81,7 @@ func ExtractTarbal(ctx context.Context, src io.Reader, dst string, opts ...TarOp
 	type Info struct {
 		UID, GID  int
 		IsSymlink bool
+		Xattrs    map[string]string
 	}
 
 	finished := make(chan bool)
@@ -103,12 +105,19 @@ func ExtractTarbal(ctx context.Context, src io.Reader, dst string, opts ...TarOp
 				UID:       hdr.Uid,
 				GID:       hdr.Gid,
 				IsSymlink: (hdr.Linkname != ""),
+				//nolint:staticcheck
+				Xattrs: hdr.Xattrs,
 			}
 		}
 	}()
 
 	// Be explicit about the tar flags. We want to restore the exact content without changes
-	tarcmd := exec.Command("tar", "--extract", "--preserve-permissions")
+	tarcmd := exec.Command(
+		"tar",
+		"--extract",
+		"--preserve-permissions",
+		"--xattrs", "--xattrs-include=security.capability",
+	)
 	tarcmd.Dir = dst
 	tarcmd.Stdin = src
 
@@ -136,7 +145,7 @@ func ExtractTarbal(ctx context.Context, src io.Reader, dst string, opts ...TarOp
 			continue
 		}
 
-		err = remapFile(path.Join(dst, p), uid, gid)
+		err = remapFile(path.Join(dst, p), uid, gid, v.Xattrs)
 		if err != nil {
 			log.WithError(err).WithField("uid", uid).WithField("gid", gid).WithField("path", p).Warn("cannot chown")
 		}
@@ -157,7 +166,7 @@ func toHostID(containerID int, idMap []IDMapping) int {
 }
 
 // remapFile changes the UID and GID of a file preserving existing file mode bits.
-func remapFile(name string, uid, gid int) error {
+func remapFile(name string, uid, gid int, xattrs map[string]string) error {
 	// current info of the file before any change
 	fileInfo, err := os.Stat(name)
 	if err != nil {
@@ -179,6 +188,17 @@ func remapFile(name string, uid, gid int) error {
 	err = os.Chmod(name, fileInfo.Mode())
 	if err != nil {
 		return err
+	}
+
+	for key, value := range xattrs {
+		if err := system.Lsetxattr(name, key, []byte(value), 0); err != nil {
+			log.WithField("name", key).WithField("value", value).WithField("file", name).WithError(err).Error("restoring extended attributes")
+			if err == syscall.ENOTSUP || err == syscall.EPERM {
+				continue
+			}
+
+			return err
+		}
 	}
 
 	// restore file times

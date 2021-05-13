@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -81,6 +80,8 @@ type statusService struct {
 	Ports        *ports.Manager
 	Tasks        *tasksManager
 	ideReady     *ideReadyState
+
+	api.UnimplementedStatusServiceServer
 }
 
 func (s *statusService) RegisterGRPC(srv *grpc.Server) {
@@ -220,6 +221,8 @@ func (s *statusService) TasksStatus(req *api.TasksStatusRequest, srv api.StatusS
 // RegistrableTokenService can register the token service
 type RegistrableTokenService struct {
 	Service api.TokenServiceServer
+
+	api.UnimplementedTokenServiceServer
 }
 
 // RegisterGRPC registers a gRPC service
@@ -297,6 +300,8 @@ type InMemoryTokenService struct {
 	token    map[string][]*Token
 	provider map[string][]tokenProvider
 	mu       sync.RWMutex
+
+	api.UnimplementedTokenServiceServer
 }
 
 // GetToken returns a token for a host
@@ -385,10 +390,12 @@ func convertReceivedToken(req *api.SetTokenRequest) (tkn *Token, err error) {
 		Reuse: req.Reuse,
 	}
 	if req.ExpiryDate != nil {
-		te, err := ptypes.Timestamp(req.GetExpiryDate())
+		err := req.GetExpiryDate().CheckValid()
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid expiry date: %q", err)
 		}
+
+		te := req.GetExpiryDate().AsTime()
 		if time.Now().After(te) {
 			return nil, status.Error(codes.InvalidArgument, "invalid expiry date: already expired")
 		}
@@ -558,7 +565,10 @@ func (rt *remoteTokenProvider) GetToken(ctx context.Context, req *api.GetTokenRe
 
 // InfoService implements the api.InfoService
 type InfoService struct {
-	cfg *Config
+	cfg          *Config
+	ContentState ContentState
+
+	api.UnimplementedInfoServiceServer
 }
 
 // RegisterGRPC registers the gRPC info service
@@ -581,14 +591,26 @@ func (is *InfoService) WorkspaceInfo(context.Context, *api.WorkspaceInfoRequest)
 		WorkspaceContextUrl: is.cfg.WorkspaceContextURL,
 	}
 
-	stat, err := os.Stat(is.cfg.WorkspaceRoot)
+	commit, err := is.cfg.getCommit()
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		log.WithError(err).Error()
+	} else if commit != nil && commit.Repository != nil {
+		resp.Repository = &api.WorkspaceInfoResponse_Repository{
+			Owner: commit.Repository.Owner,
+			Name:  commit.Repository.Name,
+		}
 	}
-	if stat.IsDir() {
-		resp.WorkspaceLocation = &api.WorkspaceInfoResponse_WorkspaceLocationFolder{WorkspaceLocationFolder: is.cfg.WorkspaceRoot}
-	} else {
-		resp.WorkspaceLocation = &api.WorkspaceInfoResponse_WorkspaceLocationFile{WorkspaceLocationFile: is.cfg.WorkspaceRoot}
+
+	_, contentReady := is.ContentState.ContentSource()
+	if contentReady {
+		stat, err := os.Stat(is.cfg.WorkspaceRoot)
+		if err != nil {
+			log.WithError(err).Error("workspace info: cannot resolve the workspace root")
+		} else if stat.IsDir() {
+			resp.WorkspaceLocation = &api.WorkspaceInfoResponse_WorkspaceLocationFolder{WorkspaceLocationFolder: is.cfg.WorkspaceRoot}
+		} else {
+			resp.WorkspaceLocation = &api.WorkspaceInfoResponse_WorkspaceLocationFile{WorkspaceLocationFile: is.cfg.WorkspaceRoot}
+		}
 	}
 
 	resp.UserHome, err = os.UserHomeDir()
@@ -611,6 +633,8 @@ func (is *InfoService) WorkspaceInfo(context.Context, *api.WorkspaceInfoRequest)
 // ControlService implements the supervisor control service
 type ControlService struct {
 	portsManager *ports.Manager
+
+	api.UnimplementedControlServiceServer
 }
 
 // RegisterGRPC registers the gRPC info service

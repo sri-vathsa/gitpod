@@ -16,6 +16,7 @@
                 "workspaceType": "ghost"
             },
             "annotations": {
+                "container.apparmor.security.beta.kubernetes.io/workspace": "unconfined",
                 "gitpod.io/requiredNodeServices": "ws-daemon,registry-facade",
                 "gitpod/admission": "admit_owner_only",
                 "gitpod/contentInitializer": "GmcKZXdvcmtzcGFjZXMvY3J5cHRpYy1pZC1nb2VzLWhlcmcvZmQ2MjgwNGItNGNhYi0xMWU5LTg0M2EtNGU2NDUzNzMwNDhlLnRhckBnaXRwb2QtZGV2LXVzZXItY2hyaXN0ZXN0aW5n",
@@ -29,7 +30,7 @@
                 "prometheus.io/path": "/metrics",
                 "prometheus.io/port": "23000",
                 "prometheus.io/scrape": "true",
-                "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
+                "seccomp.security.alpha.kubernetes.io/pod": "localhost/workspace-default"
             }
         },
         "spec": {
@@ -38,6 +39,13 @@
                     "name": "vol-this-workspace",
                     "hostPath": {
                         "path": "/tmp/workspaces/foobar",
+                        "type": "DirectoryOrCreate"
+                    }
+                },
+                {
+                    "name": "daemon-mount",
+                    "hostPath": {
+                        "path": "/tmp/workspaces/foobar-daemon",
                         "type": "DirectoryOrCreate"
                     }
                 }
@@ -141,6 +149,11 @@
                             "name": "vol-this-workspace",
                             "mountPath": "/workspace",
                             "mountPropagation": "HostToContainer"
+                        },
+                        {
+                            "name": "daemon-mount",
+                            "mountPath": "/.workspace",
+                            "mountPropagation": "HostToContainer"
                         }
                     ],
                     "terminationMessagePolicy": "FallbackToLogsOnError",
@@ -171,7 +184,7 @@
                         "runAsGroup": 33333,
                         "runAsNonRoot": true,
                         "readOnlyRootFilesystem": false,
-                        "allowPrivilegeEscalation": false
+                        "allowPrivilegeEscalation": true
                     }
                 }
             ],

@@ -93,9 +93,13 @@ type manifestHandler struct {
 }
 
 func (mh *manifestHandler) getManifest(w http.ResponseWriter, r *http.Request) {
+	//nolint:staticcheck,ineffassign
 	span, ctx := opentracing.StartSpanFromContext(r.Context(), "getManifest")
+	logFields := log.OWI("", "", mh.Name)
+	logFields["tag"] = mh.Tag
+	logFields["spec"] = mh.Spec
 	err := func() error {
-		log.WithField("spec", mh.Spec).Debug("get manifest")
+		log.WithFields(logFields).Debug("get manifest")
 		tracing.LogMessageSafe(span, "spec", mh.Spec)
 
 		var (
@@ -135,12 +139,12 @@ func (mh *manifestHandler) getManifest(w http.ResponseWriter, r *http.Request) {
 
 		fetcher, err := mh.Resolver.Fetcher(ctx, ref)
 		if err != nil {
-			log.WithError(err).WithField("ref", ref).WithField("instanceId", mh.Name).Error("cannot get fetcher")
+			log.WithError(err).WithField("ref", ref).WithFields(logFields).Error("cannot get fetcher")
 			return distv2.ErrorCodeManifestUnknown.WithDetail(err)
 		}
 		rc, err := fetcher.Fetch(ctx, desc)
 		if err != nil {
-			log.WithError(err).WithField("ref", ref).WithField("instanceId", mh.Name).Error("cannot fetch manifest")
+			log.WithError(err).WithField("ref", ref).WithFields(logFields).Error("cannot fetch manifest")
 			return distv2.ErrorCodeManifestUnknown.WithDetail(err)
 		}
 		defer rc.Close()
@@ -182,11 +186,11 @@ func (mh *manifestHandler) getManifest(w http.ResponseWriter, r *http.Request) {
 
 				_, err = w.Write(rawCfg)
 				if err != nil {
-					log.WithError(err).Warn("cannot write config to store - we'll regenerate it on demand")
+					log.WithError(err).WithFields(logFields).Warn("cannot write config to store - we'll regenerate it on demand")
 				}
 				err = w.Commit(ctx, 0, cfgDgst)
 				if err != nil {
-					log.WithError(err).Warn("cannot commit config to store - we'll regenerate it on demand")
+					log.WithError(err).WithFields(logFields).Warn("cannot commit config to store - we'll regenerate it on demand")
 				}
 			}
 
@@ -221,9 +225,9 @@ func (mh *manifestHandler) getManifest(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprint(len(p)))
 		w.Header().Set("Etag", fmt.Sprintf(`"%s"`, dgst))
 		w.Header().Set("Docker-Content-Digest", dgst)
-		w.Write(p)
+		_, _ = w.Write(p)
 
-		log.WithField("name", mh.Name).WithField("tag", mh.Tag).Debug("get manifest")
+		log.WithFields(logFields).Debug("get manifest (end)")
 		return nil
 	}()
 

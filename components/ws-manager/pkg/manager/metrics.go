@@ -6,14 +6,15 @@ package manager
 
 import (
 	"context"
+	"math"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
 
+	wsk8s "github.com/gitpod-io/gitpod/common-go/kubernetes"
 	"github.com/gitpod-io/gitpod/common-go/log"
 	"github.com/gitpod-io/gitpod/ws-manager/api"
 )
@@ -24,8 +25,8 @@ func (m *Manager) RegisterMetrics(reg prometheus.Registerer) error {
 }
 
 const (
-	metricsNamespace          = "gitpod_ws_manager"
-	metricsWorkspaceSubsystem = "workspace"
+	metricsNamespace          = "gitpod"
+	metricsWorkspaceSubsystem = "ws_manager"
 )
 
 type metrics struct {
@@ -34,14 +35,10 @@ type metrics struct {
 	startupTimeHistVec    *prometheus.HistogramVec
 	totalStartsCounterVec *prometheus.CounterVec
 	totalStopsCounterVec  *prometheus.CounterVec
+	totalOpenPortGauge    prometheus.GaugeFunc
 
 	mu         sync.Mutex
 	phaseState map[string]api.WorkspacePhase
-}
-
-type wsstate struct {
-	Phase api.WorkspacePhase
-	Type  api.WorkspaceType
 }
 
 func newMetrics(m *Manager) *metrics {
@@ -51,7 +48,7 @@ func newMetrics(m *Manager) *metrics {
 		startupTimeHistVec: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: metricsNamespace,
 			Subsystem: metricsWorkspaceSubsystem,
-			Name:      "startup_seconds",
+			Name:      "workspace_startup_seconds",
 			Help:      "time it took for workspace pods to reach the running phase",
 			// same as components/ws-manager-bridge/src/prometheus-metrics-exporter.ts#L15
 			Buckets: prometheus.ExponentialBuckets(2, 2, 10),
@@ -59,15 +56,56 @@ func newMetrics(m *Manager) *metrics {
 		totalStartsCounterVec: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: metricsNamespace,
 			Subsystem: metricsWorkspaceSubsystem,
-			Name:      "starts_total",
+			Name:      "workspace_starts_total",
 			Help:      "total number of workspaces started",
 		}, []string{"type"}),
 		totalStopsCounterVec: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: metricsNamespace,
 			Subsystem: metricsWorkspaceSubsystem,
-			Name:      "stops_total",
+			Name:      "workspace_stops_total",
 			Help:      "total number of workspaces stopped",
 		}, []string{"reason"}),
+		totalOpenPortGauge: prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+			Namespace: metricsNamespace,
+			Subsystem: metricsWorkspaceSubsystem,
+			Name:      "exposed_ports",
+			Help:      "total number of currently exposed ports",
+		}, newTotalOpenPortGaugeHandler(m)),
+	}
+}
+
+func newTotalOpenPortGaugeHandler(m *Manager) func() float64 {
+	countExposedPorts := func(ctx context.Context) (float64, error) {
+		var l corev1.ServiceList
+		err := m.Clientset.List(ctx, &l, workspaceObjectListOptions(m.Config.Namespace))
+		if err != nil {
+			return 0, err
+		}
+		var portCount int
+		for _, s := range l.Items {
+			tpe, ok := s.Labels[wsk8s.ServiceTypeLabel]
+			if !ok {
+				continue
+			}
+			if tpe != "ports" {
+				continue
+			}
+			portCount += len(s.Spec.Ports)
+		}
+		return float64(portCount), nil
+	}
+
+	return func() float64 {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		r, err := countExposedPorts(ctx)
+		if err != nil {
+			log.WithError(err).Warn("cannot compute exposed_ports metric")
+			return math.NaN()
+		}
+
+		return r
 	}
 }
 
@@ -81,6 +119,7 @@ func (m *metrics) Register(reg prometheus.Registerer) error {
 		newSubscriberQueueLevelVec(m.manager),
 		m.totalStartsCounterVec,
 		m.totalStopsCounterVec,
+		m.totalOpenPortGauge,
 	}
 	for _, c := range collectors {
 		err := reg.Register(c)
@@ -125,10 +164,7 @@ func (m *metrics) OnChange(status *api.WorkspaceStatus) {
 			return
 		}
 
-		t, err := ptypes.Timestamp(status.Metadata.StartedAt)
-		if err != nil {
-			return
-		}
+		t := status.Metadata.StartedAt.AsTime()
 		tpe := api.WorkspaceType_name[int32(status.Spec.Type)]
 		hist, err := m.startupTimeHistVec.GetMetricWithLabelValues(tpe)
 		if err != nil {
@@ -169,7 +205,7 @@ type phaseTotalVec struct {
 }
 
 func newPhaseTotalVec(m *Manager) *phaseTotalVec {
-	name := prometheus.BuildFQName(metricsNamespace, metricsWorkspaceSubsystem, "phase_total")
+	name := prometheus.BuildFQName(metricsNamespace, metricsWorkspaceSubsystem, "workspace_phase_total")
 	return &phaseTotalVec{
 		name:    name,
 		desc:    prometheus.NewDesc(name, "Current number of workspaces per phase", []string{"phase", "type"}, prometheus.Labels(map[string]string{})),
@@ -233,15 +269,13 @@ type workspaceActivityVec struct {
 	*prometheus.GaugeVec
 	name    string
 	manager *Manager
-
-	mu sync.Mutex
 }
 
 func newWorkspaceActivityVec(m *Manager) *workspaceActivityVec {
 	opts := prometheus.GaugeOpts{
 		Namespace: metricsNamespace,
 		Subsystem: metricsWorkspaceSubsystem,
-		Name:      "activity_total",
+		Name:      "workspace_activity_total",
 	}
 	return &workspaceActivityVec{
 		GaugeVec: prometheus.NewGaugeVec(opts, []string{"active"}),
@@ -272,7 +306,6 @@ func (vec *workspaceActivityVec) Collect(ch chan<- prometheus.Metric) {
 	activeGauge.Set(float64(active))
 	notActiveGauge.Set(float64(notActive))
 	vec.GaugeVec.Collect(ch)
-	return
 }
 
 func (vec *workspaceActivityVec) getWorkspaceActivityCounts() (active, notActive int, err error) {
@@ -308,8 +341,6 @@ type timeoutSettingsVec struct {
 	name    string
 	manager *Manager
 	desc    *prometheus.Desc
-
-	mu sync.Mutex
 }
 
 func newTimeoutSettingsVec(m *Manager) *timeoutSettingsVec {
@@ -372,7 +403,7 @@ type subscriberQueueLevelVec struct {
 	desc    *prometheus.Desc
 }
 
-func newSubscriberQueueLevelVec(m *Manager) *timeoutSettingsVec {
+func newSubscriberQueueLevelVec(m *Manager) *subscriberQueueLevelVec {
 	name := prometheus.BuildFQName(metricsNamespace, metricsWorkspaceSubsystem, "subscriber_queue_level")
 	desc := prometheus.NewDesc(
 		name,
@@ -380,7 +411,7 @@ func newSubscriberQueueLevelVec(m *Manager) *timeoutSettingsVec {
 		[]string{"client"},
 		prometheus.Labels(map[string]string{}),
 	)
-	return &timeoutSettingsVec{
+	return &subscriberQueueLevelVec{
 		name:    name,
 		manager: m,
 		desc:    desc,
